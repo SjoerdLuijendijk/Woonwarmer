@@ -28,8 +28,10 @@ Development unless testing the sync on purpose.
 - Code: `lib/woocommerce/` (`client.ts` HTTP and errors, `taxonomy.ts` attributes, terms and
   categories, `product.ts` the product payload, `sync.ts` the sync of one stove).
 - Every server action that changes a stove (add, edit, stock, "Webshop" checkbox, photos) schedules
-  `syncStoveToShop` with `after()`, so saving never waits for the shop. It runs with the signed-in
-  team member's Supabase client, so RLS applies as usual.
+  `syncStoveToShop` with `after()`, so saving never waits for the shop. Adding or editing a stove
+  (and making it to order) first regenerates the Marktplaats ad and only then syncs, so the product
+  reaches the shop with its ad text in one go; if the ad cannot be made, it syncs with the previous
+  text. It runs with the signed-in team member's Supabase client, so RLS applies as usual.
 - The outcome is stored on the stove: `shop_product_id`, `shop_synced_at` and `shop_sync_error`
   (migration `20260930150000_add_shop_sync_status.sql`). A failure shows "⚠ Opnieuw" next to the
   Webshop checkbox; clicking it runs the sync again right away (`retryShopSync`).
@@ -98,7 +100,7 @@ app first ("Alles uit webshop ophalen").
 | --- | --- | --- |
 | `number` | `sku` | Unique key for matching. |
 | `brand` + `stove_type` | `name` | E.g. "Hwam Houtkachel"; without a type only the brand. `product_name` and `model` are no longer used. |
-| `marketplace_ad`, else `description` | `description` | The stove's Marktplaats ad text when it has one, so the shop's GoedGeplaatst connector forwards it to Marktplaats; otherwise the optional free text. Plain text with line breaks. The product is synced again whenever a new ad is stored (generated in the background, regenerated or edited by hand). |
+| `marketplace_ad`, else `description` | `description` | The stove's Marktplaats ad text when it has one, so the shop's GoedGeplaatst connector forwards it to Marktplaats; otherwise the optional free text. Plain text with line breaks. The product is synced again when the ad is regenerated or edited by hand in the ad dialog. |
 | `price_cents` | `regular_price` | Incl. VAT, as a decimal string ("1250.00"). Assumes the shop enters prices incl. VAT. |
 | `condition` + `stove_type` | `categories` | New: "Nieuwe kachels". Gereviseerd: "Gereviseerde kachels" plus "Houtkachels" or "Speksteenkachels". Matched by slug; a missing category is skipped. |
 | `brand` | global attribute "Merk" (`pa_merk`) | Existing terms are matched ignoring case and spaces; a new brand is added as a term. |
