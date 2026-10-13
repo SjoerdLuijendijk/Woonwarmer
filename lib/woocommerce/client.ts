@@ -40,12 +40,21 @@ export function getWooCommerceConfig(): Config | null {
   };
 }
 
-function describeStatus(status: number, code: string | undefined) {
+// Products that WordPress could not save (an error in WooCommerce or a plugin hooked into saving)
+// only explain why in the message, so that one is shown, as plain text and shortened.
+function shopReason(data: unknown) {
+  if (typeof data !== "object" || data === null || !("message" in data) || typeof data.message !== "string") return "";
+  const text = data.message.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  return text.length > 200 ? `${text.slice(0, 200)}…` : text;
+}
+
+function describeStatus(status: number, code: string | undefined, data: unknown) {
   if (status === 401 || status === 403) return "De webshop weigert de API-sleutel. Controleer de sleutel en of die lees- en schrijfrechten heeft.";
   if (status === 404) return "De webshop-API is niet gevonden. Controleer het webshopadres.";
   if (status === 429) return "De webshop krijgt te veel verzoeken. Probeer het later opnieuw.";
   if (status >= 500) return "De webshop had een storing. Probeer het later opnieuw.";
-  return `De webshop weigerde de wijziging${code ? ` (${code})` : ""}.`;
+  const reason = code?.endsWith("_not_created") ? shopReason(data) : "";
+  return `De webshop weigerde de wijziging${code ? ` (${code})` : ""}.${reason ? ` Reden: ${reason}` : ""}`;
 }
 
 export function wooRequest<T>(config: Config, method: "GET" | "POST" | "PUT" | "DELETE", path: string, body?: unknown): Promise<T> {
@@ -70,7 +79,7 @@ async function request<T>(url: string, method: "GET" | "POST" | "PUT" | "DELETE"
   const data: unknown = await response.json().catch(() => null);
   if (!response.ok) {
     const code = typeof data === "object" && data !== null && "code" in data && typeof data.code === "string" ? data.code : undefined;
-    throw new WooCommerceError(describeStatus(response.status, code), response.status, code);
+    throw new WooCommerceError(describeStatus(response.status, code, data), response.status, code);
   }
   return data as T;
 }
