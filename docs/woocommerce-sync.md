@@ -1,8 +1,9 @@
 # WooCommerce sync
 
-Status: the app pushes stoves to the WooCommerce shop (woonwarmer.nl). Changes made in the shop
-(stock, price, attributes, status, new products) come back into the app only when a team member
-uses "Alles uit webshop ophalen"; there is no automatic sync from the shop to the app.
+Status: the app is the only source of the WooCommerce shop (woonwarmer.nl). It pushes every stove to
+the shop and never reads stove data back. Products that no stove in the app owns should not be
+online; the one-off reset below takes them offline. Do not add or edit stove products in WordPress:
+the next sync overwrites them.
 
 ## Configuration
 
@@ -52,49 +53,31 @@ ticking "Webshop" again creates a new product. WooCommerce does not count trashe
 checking SKUs; should a shop reject the SKU anyway, the sync reports `product_invalid_sku` until the
 trashed product is deleted permanently.
 
-## Importing the existing shop products
+## History: imported shop products
 
-Rule: nothing in the shop changes without an explicit action by a team member. The import only
-reads from the shop.
+Until 2026-10-13 the app could import the shop's products as stoves (keeping their five-digit SKU as
+stove number), link them one by one, and fetch shop changes back ("Alles uit webshop ophalen"). All
+of that was removed when the app became the only source. Imported stoves keep their
+`shop_product_id`; `shop_sync_enabled` (migration `20260930190000_add_shop_sync_enabled.sql`) is no
+longer read and can be dropped in a later migration once no deployed code selects it.
 
-Admin → Webshop (`lib/woocommerce/import.ts`, `import-mapping.ts`) takes over published
-products as stoves: one by its five-digit number ("Deze kachel importeren"), or all of them as the
-second step of "Alles uit webshop ophalen":
+## One-off reset (temporary)
 
-- A stove keeps its five-digit shop SKU as its stove number (e.g. 26118), which is also on the
-  stove itself. The database allows explicit numbers only in the five-digit range. Stoves added in
-  the app get the highest five-digit number ever used plus one, so they continue the shop's
-  numbering (migration `20260930233000_continue_shop_stove_numbers.sql`). A number that exists only
-  in the shop and not yet in the app can still be handed out; the sync then refuses to touch that
-  shop product (see Matching).
-- The stove records its product (`shop_product_id`, `shop_listed`) but starts **unlinked**
-  (`shop_sync_enabled = false`, migration `20260930190000_add_shop_sync_enabled.sql`): the sync
-  skips it entirely. The inventory shows "Koppelen" next to its Webshop checkbox; linking
-  (`linkStoveToShop`, after a confirmation) enables the sync and updates the product right away.
-  Until then, selling it in the app does not take it offline in the shop.
-  "Alles koppelen" in Admin → Webshop links all unlinked stoves after a confirmation, two per
-  server action call (`lib/woocommerce/link.ts`). A stove whose shop update fails stays linked and
-  shows "⚠ Opnieuw"; the run stops when a whole batch fails.
-- Details are parsed from the shop's global and product attributes (Merk, Staat kachel, Type kachel,
-  Aansluiting, Vermogen, Harthoogte achter, Rendement, Energielabel, Garantie, ...). Values that do
-  not make sense are left empty. The shop name is stored in `product_name` for reference only; once
-  linked, the product is renamed to brand + stove type.
-- Photos are downloaded from the shop (a WordPress size of at most about 1600 px, JPEG, within the
-  app's photo size limit) and stored in the app. Linking uploads them to the shop again as new
-  images named `kachel-<number>-foto-<photo id>`; the old images stay in the media library.
-- It runs in batches of four products per server action call; the settings page repeats the call
-  until nothing is left. Existing stove numbers are skipped, so it can be run again safely.
-- Fire bowls (category "Vuurschalen"), products without a five-digit SKU and out-of-stock products
-  are skipped.
+Admin → Webshop (`app/ShopResetPanel.tsx`, `app/shop-reset-actions.ts`,
+`lib/woocommerce/shop-reset.ts`, `lib/shop-reset-batch.ts`) runs once after the ad prompt changed:
 
-Once linked, the app owns the product like any other: linking replaces its attributes, categories
-and images with the app's data.
+1. Every stove still for sale gets a new Marktplaats ad (manual versions are replaced too), then
+   every stove is synced. Three stoves per server action call; the page repeats the call and lists
+   failures, which can be retried.
+2. "Controleren" lists the published shop products that no stove owns (`shop_product_id`), and
+   after a confirmation sets them to draft with the batch endpoint. Nothing is deleted.
+
+Remove these files and the Webshop admin section once the reset has run.
 
 ## Field mapping (app → WooCommerce)
 
 Every sync replaces the product's name, price, description, categories, attributes, images and
-stock with the app's data. Edits made in WordPress are overwritten unless they were fetched into the
-app first ("Alles uit webshop ophalen").
+stock with the app's data. Edits made in WordPress are overwritten.
 
 | App | WooCommerce product | Notes |
 | --- | --- | --- |
@@ -105,7 +88,7 @@ app first ("Alles uit webshop ophalen").
 | `condition` + `stove_type` | `categories` | New: "Nieuwe kachels". Gereviseerd: "Gereviseerde kachels" plus "Houtkachels" or "Speksteenkachels". Matched by slug; a missing category is skipped. |
 | `brand` | global attribute "Merk" (`pa_merk`) | Existing terms are matched ignoring case and spaces; a new brand is added as a term. |
 | `condition` | global attribute "Staat kachel" (`pa_staat`) | Nieuw / Gereviseerd. |
-| `stove_type` | global attribute "Type kachel" (`pa_type-kachel`) | Free text with suggestions. Known types are stored as a key (`wood`, `soapstone`, `pot`, `wood_central_heating`) and sent as their label; any other type is sent as typed and added as a new term (migration `20260930250000_free_stove_type.sql`). The import keeps an unknown shop type as text. |
+| `stove_type` | global attribute "Type kachel" (`pa_type-kachel`) | Free text with suggestions. Known types are stored as a key (`wood`, `soapstone`, `pot`, `wood_central_heating`) and sent as their label; any other type is sent as typed and added as a new term (migration `20260930250000_free_stove_type.sql`). |
 | `flue_outlet` | global attribute "Aansluiting" (`pa_aansluiting`) | Bovenaansluiting, Achteraansluiting, or both. |
 | `power_kw` | global attribute "Vermogen" (`pa_vermogen`) | Matches existing terms such as "8kW" or "6,5 kw"; otherwise adds e.g. "7,5 kW". |
 | dimensions, `weight_kg`, `flue_diameter_mm`, `flue_center_height_cm`, yes/no fields, min/max power, efficiency, energy label, warranty, material | product attributes | Labels as in the app's Marktplaats ad details (`lib/stove-specs.ts`), e.g. "Harthoogte achter: 94 cm". Unknown values are left out. WooCommerce's own `dimensions` and `weight` are not used, because their units depend on shop settings. |
@@ -126,19 +109,3 @@ app first ("Alles uit webshop ophalen").
 - Two syncs for the same stove can overlap (for example two quick edits); the last one to finish
   wins, which may briefly be the older data until the next change.
 - Background syncs finish after the page has refreshed; a failure shows up on the next page load.
-
-## Fetching everything from the shop by hand
-
-Admin → Webshop → "Alles uit webshop ophalen" does two things after a confirmation, and only reads
-from the shop:
-
-1. Existing stoves (`lib/woocommerce/shop-refresh.ts`): every stove with a shop product gets the
-   shop's stock, price, attributes and online status (not the title: the app names products after
-   brand and stove type; not the description of a stove with a Marktplaats ad, because that
-   description is the ad). Values the shop leaves empty keep the app's value; a stove at 0 becomes sold;
-   "op bestelling" in the shop makes it made to order. It runs with the
-   team member's own login and shows per stove what changed. Stoves with a pending shop error (⚠)
-   are skipped, because the shop has not received their latest change yet; trashed or deleted
-   products are skipped as well.
-2. New products: the import below, in batches. A product counts as already in the app when a stove
-   has its SKU as number or is linked to it (`shop_product_id`), so nothing is imported twice.

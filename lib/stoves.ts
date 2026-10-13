@@ -99,7 +99,6 @@ export type Stove = {
   /** Why the last web shop update failed; null when it succeeded or was not needed. */
   shopSyncError: string | null;
   /** False for stoves imported from the shop until a team member links them: the app then leaves the shop alone. */
-  shopSyncEnabled: boolean;
   /** The linked WooCommerce product, once the stove has been in the shop. */
   shopProductId: number | null;
   /** New stove sold without stock; always available, stock is not tracked. */

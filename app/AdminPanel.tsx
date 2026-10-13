@@ -3,7 +3,6 @@ import { DEFAULT_AD_PROMPT } from "../lib/ad-prompt";
 import { ADMIN_SECTIONS, type AdminSection } from "../lib/admin-sections";
 import { getCompany, listInvoices } from "../lib/invoice-queries";
 import { getAdPrompt } from "../lib/marketplace-ad-store";
-import { countUnlinkedStoves } from "../lib/woocommerce/link";
 import AdPromptForm from "./AdPromptForm";
 import CompanySettingsForm from "./CompanySettingsForm";
 import { listArticles } from "../lib/article-queries";
@@ -12,8 +11,7 @@ import ArticleList from "./ArticleList";
 import QuoteList from "./QuoteList";
 import InvoiceDialog from "./InvoiceDialog";
 import InvoiceList from "./InvoiceList";
-import ShopImportPanel from "./ShopImportPanel";
-import ShopLinkAllPanel from "./ShopLinkAllPanel";
+import ShopResetPanel from "./ShopResetPanel";
 
 // One management page, opened from the account menu.
 export default async function AdminPanel({ supabase, section }: { supabase: SupabaseClient; section: AdminSection }) {
@@ -37,10 +35,7 @@ export default async function AdminPanel({ supabase, section }: { supabase: Supa
     <section className="panel" aria-labelledby="admin-title">
       <h1 id="admin-title">{ADMIN_SECTIONS.find(({ key }) => key === section)?.label}</h1>
       {section === "webshop" ? (
-        <>
-          <ShopImportPanel />
-          <ShopLinkAllPanel unlinkedCount={await countUnlinkedStoves(supabase)} />
-        </>
+        <ShopResetPanel />
       ) : section === "advertentie" ? (
         <AdPromptForm prompt={(await getAdPrompt(supabase)) ?? DEFAULT_AD_PROMPT} />
       ) : (

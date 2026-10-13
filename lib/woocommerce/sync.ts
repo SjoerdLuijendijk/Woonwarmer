@@ -100,14 +100,6 @@ async function pushStove(supabase: SupabaseClient, config: Config, stoveNumber: 
 // Brings the stove's web shop product in line with the app. Never throws: the outcome is stored on
 // the stove (shop_sync_error) and returned, so saving in the app never fails because of the shop.
 export async function syncStoveToShop(supabase: SupabaseClient, stoveNumber: number): Promise<string | null> {
-  // Imported stoves stay out of the shop sync until they are linked explicitly.
-  const { data: link, error: linkError } = await supabase.from("stoves").select("shop_sync_enabled").eq("number", stoveNumber).maybeSingle();
-  if (linkError) {
-    console.error("Web shop sync failed", { stoveNumber, code: linkError.code });
-    return UNKNOWN_ERROR;
-  }
-  if (!link?.shop_sync_enabled) return null;
-
   const config = getWooCommerceConfig();
   if (!config) {
     const { data } = await supabase.from("stoves").select("shop_listed, shop_sync_error").eq("number", stoveNumber).maybeSingle();
