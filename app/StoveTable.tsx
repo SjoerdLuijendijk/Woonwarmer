@@ -10,6 +10,7 @@ import { LISTING_CHANNELS, type ListingChannel, type Stove } from "../lib/stoves
 import SortableHeader from "./SortableHeader";
 import StockPrintList from "./StockPrintList";
 import StoveRow from "./StoveRow";
+import { useThumbnailBackfill } from "./useThumbnailBackfill";
 
 const KIND_LABELS: Record<Kind, string> = { used: "Gereviseerd", new: "Nieuw", order: "Op bestelling" };
 // For the empty message: "Geen gereviseerde kachels in het verkocht archief."
@@ -31,6 +32,7 @@ export default function StoveTable({ stoves, view }: { stoves: Stove[]; view: St
   // Null until a tab is clicked: the first tab with stoves is shown.
   const [selectedKind, setKind] = useState<Kind | null>(null);
   const [sort, setSort] = useState(DEFAULT_SORT);
+  useThumbnailBackfill(stoves);
 
   // Made-to-order stoves never sell out, so the archive has no tab for them.
   const kinds = (Object.keys(KIND_LABELS) as Kind[]).filter((key) => view === "available" || key !== "order");

@@ -168,3 +168,10 @@ overrides the default model. Generated text can contain mistakes; check it befor
 
 Photos are resized in the browser to JPEG (max. 1600 px) before upload. The server accepts
 JPEG only, max. 1.5 MB per photo and 4 MB per upload (Server Action / Vercel request limit).
+
+The server also stores a small copy of each photo (max. 320 px, made with `sharp`) next to it as
+`<stove number>/<uuid>-thumb.jpg` (`lib/photo-thumbnails.ts`). The stock table and the photo grid
+show these thumbnails; the full photo loads only in the photo viewer. Photos stored before
+thumbnails existed get one in the background while the stock page is open, a few per call
+(`lib/thumbnail-backfill.ts`); until then the full photo is shown. Deleting a photo or a stove
+removes its thumbnails too.

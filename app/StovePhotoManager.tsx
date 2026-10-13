@@ -51,7 +51,7 @@ export default function StovePhotoManager({ stoveNumber, photos }: { stoveNumber
             <li key={photo.id}>
               {photo.url ? (
                 <button type="button" className="thumb-open" onClick={() => setViewIndex(index)} aria-label={`Foto ${index + 1} bekijken`}>
-                  <img src={photo.url} alt="" />
+                  <img src={photo.thumbUrl ?? photo.url} alt="" loading="lazy" decoding="async" />
                 </button>
               ) : (
                 <span className="thumb-missing" aria-label="Foto niet beschikbaar">?</span>

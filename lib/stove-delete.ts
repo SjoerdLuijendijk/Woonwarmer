@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { thumbnailPath } from "./photo-thumbnails";
 import { PHOTOS_BUCKET } from "./stoves";
 import { WooCommerceError } from "./woocommerce/client";
 import { trashShopProduct } from "./woocommerce/remove";
@@ -39,7 +40,7 @@ export async function deleteStove(supabase: SupabaseClient, stoveNumber: number,
   }
 
   // The photo rows went with the stove; remove the files too. A failure only leaves unused files.
-  const paths = photos.data.map((photo) => photo.path);
+  const paths = photos.data.flatMap((photo) => [photo.path, thumbnailPath(photo.path)]);
   if (paths.length > 0) {
     const { error: removeError } = await supabase.storage.from(PHOTOS_BUCKET).remove(paths);
     if (removeError) console.error("Removing photos of a deleted stove failed", { stoveNumber });

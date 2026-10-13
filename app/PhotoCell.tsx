@@ -26,7 +26,7 @@ export default function PhotoCell({ stoveNumber, photos }: { stoveNumber: number
           onClick={() => setViewIndex(0)}
           aria-label={photos.length > 1 ? `${photos.length} foto's bekijken` : "Foto bekijken"}
         >
-          <img src={mainPhoto.url} alt="" />
+          <img src={mainPhoto.thumbUrl ?? mainPhoto.url} alt="" loading="lazy" decoding="async" />
         </button>
       ) : (
         <span className="thumb-missing" aria-label="Foto niet beschikbaar">?</span>
