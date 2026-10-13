@@ -2,7 +2,7 @@
 
 Status: the app is the only source of the WooCommerce shop (woonwarmer.nl). It pushes every stove to
 the shop and never reads stove data back. Products that no stove in the app owns should not be
-online; the one-off reset below takes them offline. Do not add or edit stove products in WordPress:
+online (the one-off reset below took them offline once). Do not add or edit stove products in WordPress:
 the next sync overwrites them.
 
 ## Configuration
@@ -61,18 +61,11 @@ of that was removed when the app became the only source. Imported stoves keep th
 `shop_product_id`; `shop_sync_enabled` (migration `20260930190000_add_shop_sync_enabled.sql`) is no
 longer read and can be dropped in a later migration once no deployed code selects it.
 
-## One-off reset (temporary)
+## One-off reset (2026-10-13)
 
-Admin → Webshop (`app/ShopResetPanel.tsx`, `app/shop-reset-actions.ts`,
-`lib/woocommerce/shop-reset.ts`, `lib/shop-reset-batch.ts`) runs once after the ad prompt changed:
-
-1. Every stove still for sale gets a new Marktplaats ad (manual versions are replaced too), then
-   every stove is synced. Three stoves per server action call; the page repeats the call and lists
-   failures, which can be retried.
-2. "Controleren" lists the published shop products that no stove owns (`shop_product_id`), and
-   after a confirmation sets them to draft with the batch endpoint. Nothing is deleted.
-
-Remove these files and the Webshop admin section once the reset has run.
+After the ad prompt changed, a temporary Admin → Webshop page regenerated every ad, synced every
+stove, and set published shop products that no stove owned to draft. It was run once and removed;
+see the git history of `lib/woocommerce/shop-reset.ts` if something similar is needed again.
 
 ## Field mapping (app → WooCommerce)
 
