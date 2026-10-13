@@ -32,11 +32,13 @@ function syncShopLater(supabase: Parameters<typeof syncStoveToShop>[0], stoveNum
   after(() => syncStoveToShop(supabase, stoveNumber));
 }
 
-// Prepares the Marktplaats ad after the response, so saving never waits for it. The ad is the web
-// shop's product description, so the product is updated again once a new ad is stored.
-function refreshAdLater(supabase: Parameters<typeof syncStoveToShop>[0], stoveNumber: number) {
+// Prepares the Marktplaats ad after the response, so saving never waits for it, and only then
+// updates the web shop product: the ad is its description, which GoedGeplaatst forwards to
+// Marktplaats. If the ad cannot be made, the product is still updated with the previous text.
+function refreshAdThenSyncShopLater(supabase: Parameters<typeof syncStoveToShop>[0], stoveNumber: number) {
   after(async () => {
-    if (await refreshStoredAd(supabase, stoveNumber)) await syncStoveToShop(supabase, stoveNumber);
+    await refreshStoredAd(supabase, stoveNumber);
+    await syncStoveToShop(supabase, stoveNumber);
   });
 }
 
@@ -63,9 +65,8 @@ export async function addStove(formData: FormData): Promise<ActionResult<{ numbe
     .single();
   if (error) return { ok: false, error: errorMessage(error) };
 
-  refreshAdLater(supabase, stove.number);
-  // Registered after storing the photos below, since after() runs once the response is sent.
-  syncShopLater(supabase, stove.number);
+  // Runs once the response is sent, so after storing the photos below.
+  refreshAdThenSyncShopLater(supabase, stove.number);
   revalidatePath("/");
   try {
     await storePhotos(supabase, stove.number, photos);
@@ -92,8 +93,7 @@ export async function updateStove(stoveNumber: number, formData: FormData): Prom
   if (data.length === 0) return { ok: false, error: "Deze kachel bestaat niet meer." };
 
   // The stored ad would otherwise show outdated details such as the old price.
-  refreshAdLater(supabase, stoveNumber);
-  syncShopLater(supabase, stoveNumber);
+  refreshAdThenSyncShopLater(supabase, stoveNumber);
   revalidatePath("/");
   return { ok: true };
 }
@@ -156,8 +156,7 @@ export async function makeStoveMadeToOrder(stoveNumber: number): Promise<ActionR
   if (data.length === 0) return { ok: false, error: "Alleen een nieuwe kachel kan op bestelling leverbaar worden." };
 
   // The stored ad mentions the availability.
-  refreshAdLater(supabase, stoveNumber);
-  syncShopLater(supabase, stoveNumber);
+  refreshAdThenSyncShopLater(supabase, stoveNumber);
   revalidatePath("/");
   return { ok: true };
 }
