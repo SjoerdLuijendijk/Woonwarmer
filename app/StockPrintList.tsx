@@ -2,14 +2,39 @@
 
 import { useEffect, useState } from "react";
 import { formatPrice } from "../lib/price";
-import { formatDimensions, formatFlue, formatType, kindOf, MISSING } from "../lib/stove-display";
+import { kindOf, MISSING } from "../lib/stove-display";
 import { sortStoves } from "../lib/stove-sort";
+import { stoveSpecs, type StoveSpecKey } from "../lib/stove-specs";
 import type { Stove } from "../lib/stoves";
 
 const DATE_FORMAT = new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "long", year: "numeric" });
 const PRINT_SORT = { key: "brand", direction: "asc" } as const;
 
+// Detail columns in print order with short headings; the section already says new or used.
+const SPEC_COLUMNS: [StoveSpecKey, string][] = [
+  ["stoveType", "Type"],
+  ["power", "Vermogen"],
+  ["minPower", "Min."],
+  ["maxPower", "Max."],
+  ["dimensions", "H × B × D"],
+  ["weight", "Gewicht"],
+  ["flueOutlet", "Aansluiting"],
+  ["flueDiameter", "Ø pijp"],
+  ["flueCenterHeight", "Harthoogte"],
+  ["externalAirSupply", "Ext. lucht"],
+  ["newFirebox", "Nieuw binnenwerk"],
+  ["thermostat", "Thermostaat"],
+  ["efficiency", "Rendement"],
+  ["energyLabel", "Label"],
+  ["warranty", "Garantie"],
+  ["material", "Materiaal"],
+];
+
 function StockSection({ title, stoves }: { title: string; stoves: Stove[] }) {
+  const rows = stoves.map((stove) => ({ stove, specs: new Map(stoveSpecs(stove).map((spec) => [spec.key, spec.value])) }));
+  // Only columns that at least one stove has filled in.
+  const columns = SPEC_COLUMNS.filter(([key]) => rows.some(({ specs }) => specs.has(key)));
+  const showStock = stoves.some((stove) => stove.stockQuantity > 1);
   return (
     <section className="print-section">
       <h2>{title}</h2>
@@ -20,21 +45,19 @@ function StockSection({ title, stoves }: { title: string; stoves: Stove[] }) {
           <thead>
             <tr>
               <th scope="col">Nr.</th>
-              <th scope="col">Merk</th>
-              <th scope="col">Type</th>
-              <th scope="col">H × B × D</th>
-              <th scope="col">Rookafvoer</th>
+              <th scope="col">Kachel</th>
+              {columns.map(([key, heading]) => <th key={key} scope="col">{heading}</th>)}
+              {showStock && <th scope="col" className="cell-numeric">Aantal</th>}
               <th scope="col" className="cell-numeric">Prijs</th>
             </tr>
           </thead>
           <tbody>
-            {stoves.map((stove) => (
+            {rows.map(({ stove, specs }) => (
               <tr key={stove.number}>
                 <td>{stove.number}</td>
-                <td>{stove.brand}</td>
-                <td>{formatType(stove)}</td>
-                <td className="cell-nowrap">{formatDimensions(stove)}</td>
-                <td>{formatFlue(stove)}</td>
+                <td>{stove.shopName ?? stove.brand}</td>
+                {columns.map(([key]) => <td key={key}>{specs.get(key) ?? MISSING}</td>)}
+                {showStock && <td className="cell-numeric">{stove.stockQuantity}</td>}
                 <td className="cell-numeric cell-nowrap">{stove.priceCents ? formatPrice(stove.priceCents) : MISSING}</td>
               </tr>
             ))}

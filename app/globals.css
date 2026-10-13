@@ -2039,14 +2039,16 @@ a {
     break-before: page;
   }
 
+  /* Many detail columns: a smaller font keeps one stove on one line where possible. */
   .print-stock table {
     width: 100%;
     border-collapse: collapse;
+    font-size: 8pt;
   }
 
   .print-stock th,
   .print-stock td {
-    padding: 1.5mm 2mm;
+    padding: 1.2mm 1.2mm;
     border-bottom: 0.5pt solid #999;
     text-align: left;
     vertical-align: top;
