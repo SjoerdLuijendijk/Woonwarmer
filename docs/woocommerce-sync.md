@@ -98,7 +98,7 @@ app first ("Alles uit webshop ophalen").
 | --- | --- | --- |
 | `number` | `sku` | Unique key for matching. |
 | `brand` + `stove_type` | `name` | E.g. "Hwam Houtkachel"; without a type only the brand. `product_name` and `model` are no longer used. |
-| `description` | `description` | Optional free text. |
+| `marketplace_ad`, else `description` | `description` | The stove's Marktplaats ad text when it has one, so the shop's GoedGeplaatst connector forwards it to Marktplaats; otherwise the optional free text. Plain text with line breaks. The product is synced again whenever a new ad is stored (generated in the background, regenerated or edited by hand). |
 | `price_cents` | `regular_price` | Incl. VAT, as a decimal string ("1250.00"). Assumes the shop enters prices incl. VAT. |
 | `condition` + `stove_type` | `categories` | New: "Nieuwe kachels". Gereviseerd: "Gereviseerde kachels" plus "Houtkachels" or "Speksteenkachels". Matched by slug; a missing category is skipped. |
 | `brand` | global attribute "Merk" (`pa_merk`) | Existing terms are matched ignoring case and spaces; a new brand is added as a term. |
@@ -132,7 +132,8 @@ from the shop:
 
 1. Existing stoves (`lib/woocommerce/shop-refresh.ts`): every stove with a shop product gets the
    shop's stock, price, attributes and online status (not the title: the app names products after
-   brand and stove type). Values the shop leaves empty keep the app's value; a stove at 0 becomes sold;
+   brand and stove type; not the description of a stove with a Marktplaats ad, because that
+   description is the ad). Values the shop leaves empty keep the app's value; a stove at 0 becomes sold;
    "op bestelling" in the shop makes it made to order. It runs with the
    team member's own login and shows per stove what changed. Stoves with a pending shop error (⚠)
    are skipped, because the shop has not received their latest change yet; trashed or deleted

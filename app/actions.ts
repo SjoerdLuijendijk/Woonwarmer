@@ -32,6 +32,14 @@ function syncShopLater(supabase: Parameters<typeof syncStoveToShop>[0], stoveNum
   after(() => syncStoveToShop(supabase, stoveNumber));
 }
 
+// Prepares the Marktplaats ad after the response, so saving never waits for it. The ad is the web
+// shop's product description, so the product is updated again once a new ad is stored.
+function refreshAdLater(supabase: Parameters<typeof syncStoveToShop>[0], stoveNumber: number) {
+  after(async () => {
+    if (await refreshStoredAd(supabase, stoveNumber)) await syncStoveToShop(supabase, stoveNumber);
+  });
+}
+
 export async function addStove(formData: FormData): Promise<ActionResult<{ number: number; warning?: string }>> {
   const fields = parseStoveFields(formData);
   if (!fields.ok) return fields;
@@ -55,8 +63,7 @@ export async function addStove(formData: FormData): Promise<ActionResult<{ numbe
     .single();
   if (error) return { ok: false, error: errorMessage(error) };
 
-  // Prepare the Marktplaats ad after the response, so saving never waits for it.
-  after(() => refreshStoredAd(supabase, stove.number));
+  refreshAdLater(supabase, stove.number);
   // Registered after storing the photos below, since after() runs once the response is sent.
   syncShopLater(supabase, stove.number);
   revalidatePath("/");
@@ -85,7 +92,7 @@ export async function updateStove(stoveNumber: number, formData: FormData): Prom
   if (data.length === 0) return { ok: false, error: "Deze kachel bestaat niet meer." };
 
   // The stored ad would otherwise show outdated details such as the old price.
-  after(() => refreshStoredAd(supabase, stoveNumber));
+  refreshAdLater(supabase, stoveNumber);
   syncShopLater(supabase, stoveNumber);
   revalidatePath("/");
   return { ok: true };
@@ -149,7 +156,7 @@ export async function makeStoveMadeToOrder(stoveNumber: number): Promise<ActionR
   if (data.length === 0) return { ok: false, error: "Alleen een nieuwe kachel kan op bestelling leverbaar worden." };
 
   // The stored ad mentions the availability.
-  after(() => refreshStoredAd(supabase, stoveNumber));
+  refreshAdLater(supabase, stoveNumber);
   syncShopLater(supabase, stoveNumber);
   revalidatePath("/");
   return { ok: true };

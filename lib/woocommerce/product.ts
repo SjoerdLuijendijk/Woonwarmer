@@ -53,7 +53,9 @@ async function globalAttributes(stove: StoveDetails, taxonomy: ShopTaxonomy) {
   return attributes;
 }
 
-export async function buildShopProduct(stove: StoveDetails, photos: ShopPhoto[], existingImages: ShopImage[], taxonomy: ShopTaxonomy) {
+// adText: the stove's Marktplaats ad. It becomes the product description, which the GoedGeplaatst
+// connector in the shop forwards to Marktplaats; without it the stove's own description is used.
+export async function buildShopProduct(stove: StoveDetails, adText: string | null, photos: ShopPhoto[], existingImages: ShopImage[], taxonomy: ShopTaxonomy) {
   const categoryIds: number[] = [];
   for (const slug of categorySlugs(stove)) {
     const id = await taxonomy.categoryId(slug);
@@ -81,7 +83,7 @@ export async function buildShopProduct(stove: StoveDetails, photos: ShopPhoto[],
     sku: String(stove.number),
     meta_data: [{ key: STOVE_NUMBER_META_KEY, value: String(stove.number) }],
     regular_price: stove.priceCents ? (stove.priceCents / 100).toFixed(2) : "",
-    description: stove.description ?? "",
+    description: adText || stove.description || "",
     categories: categoryIds.map((id) => ({ id })),
     attributes,
     images,

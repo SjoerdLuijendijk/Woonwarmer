@@ -1,10 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { MAX_AD_PROMPT_LENGTH, MAX_AD_TEXT_LENGTH } from "../lib/ad-prompt";
 import { requireTeamMember } from "../lib/auth";
 import { AdGenerationError } from "../lib/marketplace-ad";
 import { generateAndStoreAd, getStoredAd, saveManualAd } from "../lib/marketplace-ad-store";
+import { syncStoveToShop } from "../lib/woocommerce/sync";
 import type { ActionResult } from "./actions";
 
 const NO_ACCESS = { ok: false, error: "Je hebt geen toegang tot de voorraad." } as const;
@@ -15,6 +17,11 @@ export type MarketplaceAd = { text: string; edited: boolean; outdated: boolean }
 
 function isPositiveId(value: unknown): value is number {
   return Number.isSafeInteger(value) && (value as number) > 0;
+}
+
+// The ad is the web shop's product description; update the product after the response.
+function syncShopLater(supabase: Parameters<typeof syncStoveToShop>[0], stoveNumber: number) {
+  after(() => syncStoveToShop(supabase, stoveNumber));
 }
 
 function failure(error: unknown, context: string) {
@@ -38,7 +45,9 @@ export async function getMarketplaceAd(stoveNumber: number, regenerate: boolean)
       if (stored.text) return { ok: true, ad: { text: stored.text, edited: stored.edited, outdated: stored.outdated } };
     }
     const text = await generateAndStoreAd(supabase, stoveNumber);
-    return text === null ? NOT_FOUND : { ok: true, ad: { text, edited: false, outdated: false } };
+    if (text === null) return NOT_FOUND;
+    syncShopLater(supabase, stoveNumber);
+    return { ok: true, ad: { text, edited: false, outdated: false } };
   } catch (error) {
     return failure(error, "Getting marketplace ad failed");
   }
@@ -53,7 +62,9 @@ export async function saveMarketplaceAd(stoveNumber: number, text: unknown): Pro
   if (!isMember) return NO_ACCESS;
 
   try {
-    return (await saveManualAd(supabase, stoveNumber, text.trim())) ? { ok: true } : NOT_FOUND;
+    if (!(await saveManualAd(supabase, stoveNumber, text.trim()))) return NOT_FOUND;
+    syncShopLater(supabase, stoveNumber);
+    return { ok: true };
   } catch (error) {
     return failure(error, "Saving marketplace ad failed");
   }
