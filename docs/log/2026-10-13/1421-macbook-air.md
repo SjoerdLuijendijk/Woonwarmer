@@ -18,11 +18,19 @@ Branches: `feature/shop-ad-description`, `feature/ad-before-shop-sync`, `feature
 - Added a temporary one-off reset in Admin → Webshop: step 1 regenerates every ad (manual ones too)
   and syncs every stove; step 2 lists published shop products no stove owns and sets them to draft.
   Released to staging and production.
+- Fixed `term_exists` sync failures (brands like "Charlton &amp; Jenrick" were not matched) and the
+  sync error now shows WooCommerce's reason for products it cannot save.
+- Ran the reset: step 1 done (failures fixed; 25209 and 26127 were blocked by stale SKUs in
+  WooCommerce's lookup table and were deleted from the app by the user), step 2 found nothing
+  published without a stove. Shop: 96 published = 96 stoves for sale. The reset page and the
+  Webshop admin section were removed afterwards.
 - Vercel CLI: global install failed on permissions; use `npx -y vercel@63.1.2` (logged in).
 
 ## Open items
-- Run the reset (step 1, then step 2 after checking the list), then remove the reset files and the
-  Webshop admin section (see docs/woocommerce-sync.md), and later drop `shop_sync_enabled`.
+- Drop the unused `shop_sync_enabled` column in a later migration.
+- Test product 100006 is still a draft in WooCommerce; the user can trash it by hand.
+- Photos in the stock table load slowly (full-size photos as thumbnails, signed URLs change on every
+  render); proposed: store ~300 px thumbnails at upload plus a one-off backfill. Not built yet.
 - Web shop orders do not lower the app's stock; the next sync restores the app's stock.
 - Not tested: the error screen (needs a release while a page is open) and the ad-first sync timing.
 - Consider Vercel Skew Protection so open pages keep working during a release.
