@@ -18,7 +18,7 @@ export type ShopRefreshResult = {
 // WooCommerce returns at most 100 products per page.
 const PAGE_SIZE = 100;
 const STOVE_COLUMNS =
-  "number, shop_product_id, shop_sync_error, brand, condition, stove_type, height_cm, width_cm, depth_cm, weight_kg, flue_outlet, flue_diameter_mm, flue_center_height_cm, power_kw, min_power_kw, max_power_kw, external_air_supply, new_firebox, thermostat, efficiency_percent, energy_label, warranty_years, material, description, price_cents, made_to_order, stock_quantity, shop_listed";
+  "number, shop_product_id, shop_sync_error, brand, condition, stove_type, height_cm, width_cm, depth_cm, weight_kg, flue_outlet, flue_diameter_mm, flue_center_height_cm, power_kw, min_power_kw, max_power_kw, external_air_supply, new_firebox, thermostat, efficiency_percent, energy_label, warranty_years, material, description, marketplace_ad, price_cents, made_to_order, stock_quantity, shop_listed";
 
 // How a changed column is named in the result; the remaining columns are product details.
 const FIELD_LABELS: Record<string, string> = {
@@ -67,8 +67,12 @@ export async function refreshStovesFromShop(supabase: SupabaseClient): Promise<S
       continue;
     }
 
+    const shopValues: Record<string, unknown> = stoveChangesFromShop(product, stove);
+    // The shop's description is the stove's Marktplaats ad, which must not end up in the stove's
+    // own description (the ad is generated from it).
+    if (stove.marketplace_ad) delete shopValues.description;
     // Only the values that differ, so the result says what actually changed.
-    const changes = Object.fromEntries(Object.entries(stoveChangesFromShop(product, stove)).filter(([column, value]) => stove[column] !== value));
+    const changes = Object.fromEntries(Object.entries(shopValues).filter(([column, value]) => stove[column] !== value));
     if (Object.keys(changes).length === 0) {
       result.unchanged++;
       continue;

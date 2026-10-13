@@ -55,14 +55,19 @@ export async function saveManualAd(supabase: SupabaseClient, stoveNumber: number
 // Runs in the background after a stove is added or edited. A generated ad is regenerated so it
 // matches the stove; a manually changed ad is kept and flagged for checking instead.
 // Failures are logged, never thrown; the ad is then generated when someone opens it.
-export async function refreshStoredAd(supabase: SupabaseClient, stoveNumber: number) {
+// Returns true when a new ad text was stored.
+export async function refreshStoredAd(supabase: SupabaseClient, stoveNumber: number): Promise<boolean> {
   try {
     const stored = await getStoredAd(supabase, stoveNumber);
-    if (!stored) return;
-    if (stored.edited) await updateStoredAd(supabase, stoveNumber, { marketplace_ad_outdated: true });
-    else await generateAndStoreAd(supabase, stoveNumber);
+    if (!stored) return false;
+    if (stored.edited) {
+      await updateStoredAd(supabase, stoveNumber, { marketplace_ad_outdated: true });
+      return false;
+    }
+    return (await generateAndStoreAd(supabase, stoveNumber)) !== null;
   } catch (error) {
-    if (error instanceof AdGenerationError) return; // Already logged without details.
-    console.error("Background marketplace ad failed", { code: (error as { code?: unknown })?.code });
+    // AdGenerationError is already logged without details.
+    if (!(error instanceof AdGenerationError)) console.error("Background marketplace ad failed", { code: (error as { code?: unknown })?.code });
+    return false;
   }
 }

@@ -58,7 +58,7 @@ async function recordOutcome(supabase: SupabaseClient, stoveNumber: number, valu
 async function pushStove(supabase: SupabaseClient, config: Config, stoveNumber: number) {
   const [stove, stored] = await Promise.all([
     getStoveDetails(supabase, stoveNumber),
-    supabase.from("stoves").select("shop_product_id, shop_sync_error").eq("number", stoveNumber).maybeSingle(),
+    supabase.from("stoves").select("shop_product_id, shop_sync_error, marketplace_ad").eq("number", stoveNumber).maybeSingle(),
   ]);
   if (stored.error) throw stored.error;
   if (!stove || !stored.data) return;
@@ -78,7 +78,7 @@ async function pushStove(supabase: SupabaseClient, config: Config, stoveNumber: 
   }
 
   const photos = await signedPhotos(supabase, stoveNumber);
-  const payload = await buildShopProduct(stove, photos, product?.images ?? [], new ShopTaxonomy(config));
+  const payload = await buildShopProduct(stove, stored.data.marketplace_ad, photos, product?.images ?? [], new ShopTaxonomy(config));
 
   if (!product) {
     try {
@@ -88,7 +88,7 @@ async function pushStove(supabase: SupabaseClient, config: Config, stoveNumber: 
       if (!(error instanceof WooCommerceError && error.code === DUPLICATE_SKU)) throw error;
       const existing = await findProduct(config, null, sku);
       if (!existing) throw error;
-      product = await wooRequest<ShopProduct>(config, "PUT", `/products/${existing.id}`, await buildShopProduct(stove, photos, existing.images, new ShopTaxonomy(config)));
+      product = await wooRequest<ShopProduct>(config, "PUT", `/products/${existing.id}`, await buildShopProduct(stove, stored.data.marketplace_ad, photos, existing.images, new ShopTaxonomy(config)));
     }
   } else {
     product = await wooRequest<ShopProduct>(config, "PUT", `/products/${product.id}`, payload);
