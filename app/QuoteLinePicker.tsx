@@ -117,28 +117,32 @@ function LineBrowser({ title, groups, onPick, onClose }: LineBrowserProps) {
 }
 
 type QuoteLinePickerProps = {
-  stoves: QuoteStoveOption[];
+  /** Leave out to offer articles only (invoices). */
+  stoves?: QuoteStoveOption[];
   articles: Article[];
   onPick: (line: DraftLine) => void;
   disabled?: boolean;
 };
 
-// "Kachel toevoegen" and "Artikel toevoegen": each opens a list to scroll through and pick from.
+// "Kachel toevoegen" (when stoves are given) and "Artikel toevoegen": each opens a list to scroll
+// through and pick from.
 export default function QuoteLinePicker({ stoves, articles, onPick, disabled }: QuoteLinePickerProps) {
   const [browsing, setBrowsing] = useState<"stove" | "article" | null>(null);
 
   return (
     <>
-      <button type="button" className="secondary-button" onClick={() => setBrowsing("stove")} disabled={disabled}>
-        ＋ Kachel toevoegen
-      </button>
+      {stoves && (
+        <button type="button" className="secondary-button" onClick={() => setBrowsing("stove")} disabled={disabled}>
+          ＋ Kachel toevoegen
+        </button>
+      )}
       <button type="button" className="secondary-button" onClick={() => setBrowsing("article")} disabled={disabled}>
         ＋ Artikel toevoegen
       </button>
       {browsing && (
         <LineBrowser
           title={browsing === "stove" ? "Kachel toevoegen" : "Artikel toevoegen"}
-          groups={browsing === "stove" ? stoveGroups(stoves) : articleGroups(articles)}
+          groups={browsing === "stove" ? stoveGroups(stoves ?? []) : articleGroups(articles)}
           onPick={onPick}
           onClose={() => setBrowsing(null)}
         />

@@ -3,14 +3,16 @@
 import Link from "next/link";
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import { downloadFile } from "../lib/download-file";
-import { invoiceTotals, type Company, type Invoice } from "../lib/invoice";
+import type { Article } from "../lib/articles";
+import { invoiceTotals, MAX_INVOICE_LINES, type Company, type Invoice } from "../lib/invoice";
 import { EMPTY_CUSTOMER, emptyLine, stoveLine, todayIsoDate, toCustomer, toInvoiceLines, type DraftCustomer, type DraftLine } from "../lib/invoice-draft";
 import type { Stove } from "../lib/stoves";
 import CustomerFields from "./CustomerFields";
 import { useDialog } from "./DialogProvider";
-import { createInvoice, getCompanyForInvoice } from "./invoice-actions";
+import { createInvoice, getInvoiceSources } from "./invoice-actions";
 import InvoiceLinesEditor from "./InvoiceLinesEditor";
 import InvoiceTotalsSummary from "./InvoiceTotalsSummary";
+import QuoteLinePicker from "./QuoteLinePicker";
 
 const PREVIEW_DELAY_MS = 400;
 
@@ -36,6 +38,7 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [company, setCompany] = useState<Company | null | undefined>(undefined);
+  const [articles, setArticles] = useState<Article[] | null>(null);
   const [customer, setCustomer] = useState<DraftCustomer>(EMPTY_CUSTOMER);
   const [lines, setLines] = useState<DraftLine[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -58,11 +61,13 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
     setError(null);
     setShowLineErrors(false);
     setCompany(undefined);
+    setArticles(null);
     setIsOpen(true);
     dialogRef.current?.showModal();
-    getCompanyForInvoice().then((result) => {
-      if (result.ok) setCompany(result.company);
-      else setError(result.error);
+    getInvoiceSources().then((result) => {
+      if (!result.ok) return setError(result.error);
+      setCompany(result.company);
+      setArticles(result.articles);
     });
   }
 
@@ -169,7 +174,13 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
           <div className="invoice-layout">
             <form className="invoice-form" onSubmit={handleCreate}>
               <CustomerFields customer={customer} onChange={setCustomer} />
-              <InvoiceLinesEditor hourlyRateExCents={company ? (company.hourly_rate_ex_cents ?? null) : undefined} lines={lines} invalid={showLineErrors ? invalid : []} onChange={setLines} />
+              <InvoiceLinesEditor hourlyRateExCents={company ? (company.hourly_rate_ex_cents ?? null) : undefined} lines={lines} invalid={showLineErrors ? invalid : []} onChange={setLines}>
+                <QuoteLinePicker
+                  articles={articles ?? []}
+                  onPick={(line) => setLines((current) => [...current, line])}
+                  disabled={!articles || lines.length >= MAX_INVOICE_LINES}
+                />
+              </InvoiceLinesEditor>
               <InvoiceTotalsSummary totals={totals} />
               {error && <p className="field-error" role="alert">{error}</p>}
               <button className="primary-button primary-button--large" type="submit" disabled={pending || !company}>
