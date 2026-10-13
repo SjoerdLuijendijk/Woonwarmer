@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { storeThumbnail } from "./photo-thumbnails";
 import { MAX_PHOTO_BYTES, MAX_PHOTOS_PER_UPLOAD, MAX_UPLOAD_BYTES, PHOTOS_BUCKET } from "./stoves";
 
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
@@ -45,6 +46,13 @@ export async function storePhotos(supabase: SupabaseClient, stoveNumber: number,
       throw rowError;
     }
     ids.push(row.id);
+
+    // Without it the stock table shows the full photo until the thumbnail is made later.
+    try {
+      await storeThumbnail(supabase, path, bytes);
+    } catch (thumbnailError) {
+      console.error("Creating a photo thumbnail failed", { code: (thumbnailError as { code?: unknown })?.code });
+    }
   }
   return ids;
 }

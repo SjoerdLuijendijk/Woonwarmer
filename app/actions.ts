@@ -4,10 +4,12 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { requireTeamMember } from "../lib/auth";
 import { refreshStoredAd } from "../lib/marketplace-ad-store";
+import { thumbnailPath } from "../lib/photo-thumbnails";
 import { deleteStove } from "../lib/stove-delete";
 import { parseStockQuantity, parseStoveFields } from "../lib/stove-fields";
 import { LISTING_CHANNELS, PHOTOS_BUCKET, type ListingChannel } from "../lib/stoves";
 import { readPhotos, storePhotos, UserError } from "../lib/stove-photos";
+import { createMissingThumbnails } from "../lib/thumbnail-backfill";
 import { syncStoveToShop } from "../lib/woocommerce/sync";
 
 export type ActionResult<T = object> = ({ ok: true } & T) | { ok: false; error: string };
@@ -195,7 +197,7 @@ export async function deleteStovePhoto(photoId: number): Promise<ActionResult> {
   const { data: photo, error } = await supabase.from("stove_photos").select("path, stove_number").eq("id", photoId).single();
   if (error) return { ok: false, error: errorMessage(error) };
 
-  const { error: removeError } = await supabase.storage.from(PHOTOS_BUCKET).remove([photo.path]);
+  const { error: removeError } = await supabase.storage.from(PHOTOS_BUCKET).remove([photo.path, thumbnailPath(photo.path)]);
   if (removeError) return { ok: false, error: errorMessage(removeError) };
 
   const { error: deleteError } = await supabase.from("stove_photos").delete().eq("id", photoId);
@@ -234,4 +236,18 @@ export async function retryShopSync(stoveNumber: number): Promise<ActionResult> 
   const error = await syncStoveToShop(supabase, stoveNumber);
   revalidatePath("/");
   return error ? { ok: false, error } : { ok: true };
+}
+
+// Makes thumbnails for photos stored before thumbnails existed; the stock page repeats the call
+// while some are missing.
+export async function createMissingPhotoThumbnails(): Promise<ActionResult<{ created: number; remaining: number }>> {
+  const { supabase, isMember } = await requireTeamMember();
+  if (!isMember) return NO_ACCESS;
+
+  try {
+    return { ok: true, ...(await createMissingThumbnails(supabase)) };
+  } catch (error) {
+    console.error("Creating missing thumbnails failed", { code: (error as { code?: unknown })?.code });
+    return { ok: false, error: errorMessage(error) };
+  }
 }

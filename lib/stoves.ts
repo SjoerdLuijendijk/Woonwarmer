@@ -67,7 +67,8 @@ export const LISTING_CHANNELS = {
 } as const;
 export type ListingChannel = keyof typeof LISTING_CHANNELS;
 
-export type StovePhoto = { id: number; url: string | null };
+/** thumbUrl: a small copy for lists; null until it has been made, then use url. */
+export type StovePhoto = { id: number; url: string | null; thumbUrl: string | null };
 export type StoveInvoice = { id: number; number: string };
 
 export type Stove = {

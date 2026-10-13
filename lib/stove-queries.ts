@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getOpenNotesByStove } from "./stove-note-queries";
+import { thumbnailPath } from "./photo-thumbnails";
 import { signPhotoUrls } from "./stove-photos";
 import type { Stove, StoveDetails, StoveInvoice } from "./stoves";
 
@@ -96,13 +97,22 @@ export async function getStoves(supabase: SupabaseClient): Promise<Stove[]> {
     invoicesByStove.set(invoice.stove_number, list);
   }
 
-  const urlByPath = await signPhotoUrls(supabase, stoves.data.flatMap((stove) => stove.stove_photos.map((photo) => photo.path)));
+  const paths = stoves.data.flatMap((stove) => stove.stove_photos.map((photo) => photo.path));
+  const [urlByPath, thumbUrlByPath] = await Promise.all([
+    signPhotoUrls(supabase, paths),
+    // Thumbnails are optional: without them the full photos are shown.
+    signPhotoUrls(supabase, paths.map(thumbnailPath)).catch(() => new Map<string, string>()),
+  ]);
 
   return stoves.data.map((stove) => ({
     ...toStoveDetails(stove as DetailsRow),
     invoices: invoicesByStove.get(stove.number) ?? [],
     notes: notesByStove.get(stove.number) ?? [],
-    photos: stove.stove_photos.map((photo) => ({ id: photo.id, url: urlByPath.get(photo.path) ?? null })),
+    photos: stove.stove_photos.map((photo) => ({
+      id: photo.id,
+      url: urlByPath.get(photo.path) ?? null,
+      thumbUrl: thumbUrlByPath.get(thumbnailPath(photo.path)) ?? null,
+    })),
   }));
 }
 
