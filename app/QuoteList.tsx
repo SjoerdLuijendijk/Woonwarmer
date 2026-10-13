@@ -35,6 +35,7 @@ function invoicePrefill(quote: Quote): InvoicePrefill {
       quantity: String(line.quantity),
       price: formatPriceInput(line.unit_price_cents),
       vatRate: line.vat_rate,
+      marginScheme: line.margin_scheme,
     })),
     // An invoice records one stove; with several stoves (or none) it is a separate invoice.
     stoveNumber: stoves.length === 1 ? stoves[0] : null,

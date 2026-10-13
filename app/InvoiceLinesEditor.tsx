@@ -1,5 +1,5 @@
-import { MAX_INVOICE_LINES, VAT_RATES, type VatRate } from "../lib/invoice";
-import { emptyLine, montageLine, type DraftLine } from "../lib/invoice-draft";
+import { MAX_INVOICE_LINES, VAT_RATES } from "../lib/invoice";
+import { draftVatPatch, draftVatValue, emptyLine, montageLine, type DraftLine } from "../lib/invoice-draft";
 
 type InvoiceLinesEditorProps = {
   lines: DraftLine[];
@@ -34,12 +34,13 @@ export default function InvoiceLinesEditor({ lines, invalid, onChange, allowSave
             </label>
             <label className="stacked-label line-price">
               <span>Prijs incl. btw</span>
-              <input value={line.price} inputMode="decimal" placeholder="bijv. 250" onChange={(event) => update(line.key, { price: event.target.value })} />
+              <input value={line.price} inputMode="text" placeholder="bijv. 250 of -100" onChange={(event) => update(line.key, { price: event.target.value })} />
             </label>
             <label className="stacked-label line-vat">
               <span>Btw</span>
-              <select value={line.vatRate} onChange={(event) => update(line.key, { vatRate: Number(event.target.value) as VatRate })}>
+              <select value={draftVatValue(line)} onChange={(event) => update(line.key, draftVatPatch(event.target.value))}>
                 {VAT_RATES.map((rate) => <option key={rate} value={rate}>{rate}%</option>)}
+                <option value="margin">Marge</option>
               </select>
             </label>
             <button
@@ -69,6 +70,7 @@ export default function InvoiceLinesEditor({ lines, invalid, onChange, allowSave
           ＋ Losse regel
         </button>
       </div>
+      <p className="form-hint muted">Gebruikte kachels vallen onder de margeregeling (btw „Marge”), nieuwe onder 21%. Een inruilkachel vul je in met een minbedrag, bijv. -100.</p>
       {hourlyRateExCents === null && <p className="form-hint muted">Stel het uurtarief voor montage in bij Instellingen → Bedrijfsgegevens; dan vult ＋ Montage de prijs vanzelf in.</p>}
     </fieldset>
   );

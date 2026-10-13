@@ -61,6 +61,10 @@ export default function CompanySettingsForm({ company }: { company: Company | nu
           <span>Betaaltermijn (dagen)</span>
           <input name="payment_term_days" type="number" inputMode="numeric" min={0} max={365} step={1} required defaultValue={company?.payment_term_days ?? 14} />
         </label>
+        <label className="stacked-label">
+          <span>Voettekst onderaan de factuur (optioneel)</span>
+          <textarea name="invoice_footer" rows={6} maxLength={2000} defaultValue={company?.invoice_footer ?? ""} />
+        </label>
         {message && (
           <p className={message.ok ? "field-success" : "field-error"} role={message.ok ? "status" : "alert"}>{message.text}</p>
         )}

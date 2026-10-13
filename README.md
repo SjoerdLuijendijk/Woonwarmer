@@ -109,10 +109,15 @@ deleted.
 ## Invoices
 
 Each stove has a "Factuur" button that opens a dialog for customer details and invoice lines
-(unit prices incl. VAT, 21 %, 9 % or 0 % per line) with a live draft PDF preview. "Factuur maken"
+(unit prices incl. VAT, 21 %, 9 %, 0 % or "Marge" per line) with a live draft PDF preview. Used
+stoves are sold under the margin scheme ("Marge": no VAT on the invoice, with the legally required
+note "Bijzondere regeling – gebruikte goederen"); new and made-to-order stoves get 21 %. A stove
+taken in part exchange is a line with a negative price (migration `20261013210000_margin_scheme_lines.sql`). "Factuur maken"
 calls the `create_invoice()` database function, which stores the invoice and its lines in one
-transaction and assigns the next number of the year (2026-0001, 2026-0002, ...). The seller
-details from Admin → Bedrijfsgegevens are copied onto the invoice.
+transaction and assigns the next number of one continuous series that carries on from the
+invoices made before the app (298, 299, ...; migration `20261013200000_continuous_invoice_numbers.sql`).
+The seller details from Admin → Bedrijfsgegevens, including the small print at the bottom of the
+invoice ("Voettekst"), are copied onto the invoice.
 
 Invoices cannot be changed or deleted after creation; corrections need a credit invoice. PDFs are
 generated in the browser with `pdf-lib` and can be downloaded again from the inventory or from
