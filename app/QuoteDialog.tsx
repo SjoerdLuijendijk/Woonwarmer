@@ -5,13 +5,14 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type { Article } from "../lib/articles";
 import { downloadFile } from "../lib/download-file";
 import { invoiceTotals, MAX_INVOICE_LINES, MAX_QUANTITY, type Company } from "../lib/invoice";
-import { EMPTY_CUSTOMER, toInvoiceLines, type DraftCustomer, type DraftLine } from "../lib/invoice-draft";
-import { formatPrice, formatPriceInput, parsePriceToCents } from "../lib/price";
+import { draftLineVat, EMPTY_CUSTOMER, toInvoiceLines, type DraftCustomer, type DraftLine } from "../lib/invoice-draft";
+import { formatPriceInput, parsePriceToCents } from "../lib/price";
 import { DEFAULT_VALID_DAYS, MAX_NOTES_LENGTH, type Quote, type QuoteCustomer, type QuoteLine } from "../lib/quote";
 import type { QuoteStoveOption } from "../lib/quote-queries";
 import { todayInNetherlands } from "../lib/today";
 import CustomerFields from "./CustomerFields";
 import InvoiceLinesEditor from "./InvoiceLinesEditor";
+import InvoiceTotalsSummary from "./InvoiceTotalsSummary";
 import { getQuoteSources, saveQuote } from "./quote-actions";
 import QuoteLinePicker from "./QuoteLinePicker";
 
@@ -49,6 +50,7 @@ const toDraftLines = (quote: Quote): DraftLine[] =>
     quantity: String(line.quantity),
     price: formatPriceInput(line.unit_price_cents),
     vatRate: line.vat_rate,
+    marginScheme: line.margin_scheme,
     stoveNumber: line.stove_number,
     articleId: line.article_id,
   }));
@@ -64,8 +66,8 @@ function previewLines(lines: DraftLine[]): QuoteLine[] {
       return {
         description: line.description.trim(),
         quantity: Number.isInteger(quantity) && quantity >= 1 && quantity <= MAX_QUANTITY ? quantity : 1,
-        unit_price_cents: parsePriceToCents(line.price, { allowZero: true }) ?? 0,
-        vat_rate: line.vatRate,
+        unit_price_cents: parsePriceToCents(line.price, { allowNegative: true }) ?? 0,
+        ...draftLineVat(line),
         stove_number: line.stoveNumber ?? null,
         article_id: line.articleId ?? null,
       };
@@ -243,11 +245,7 @@ export default function QuoteDialog({ quote: initialQuote, onClose }: QuoteDialo
                 <textarea rows={3} maxLength={MAX_NOTES_LENGTH} value={notes} onChange={(event) => setNotes(event.target.value)} />
               </label>
             </fieldset>
-            <dl className="invoice-totals">
-              <div><dt>Excl. btw</dt><dd>{formatPrice(totals.exclCents, { alwaysCents: true })}</dd></div>
-              <div><dt>Btw</dt><dd>{formatPrice(totals.vatCents, { alwaysCents: true })}</dd></div>
-              <div className="invoice-total"><dt>Totaal incl. btw</dt><dd>{formatPrice(totals.inclCents, { alwaysCents: true })}</dd></div>
-            </dl>
+            <InvoiceTotalsSummary totals={totals} />
             {error && <p className="field-error" role="alert">{error}</p>}
             {message && <p className="field-success" role="status">{message}</p>}
             <div className="button-row">

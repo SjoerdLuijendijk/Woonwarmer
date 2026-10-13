@@ -74,11 +74,12 @@ export async function saveQuote(id: number | null, input: unknown): Promise<Acti
         customer_phone: customer.phone ?? "",
         notes: notes ?? "",
       },
-      p_lines: lines.map(({ description, quantity, unit_price_cents, vat_rate, stove_number, article_id }) => ({
+      p_lines: lines.map(({ description, quantity, unit_price_cents, vat_rate, margin_scheme, stove_number, article_id }) => ({
         description,
         quantity,
         unit_price_cents,
         vat_rate,
+        margin_scheme,
         stove_number,
         article_id,
       })),

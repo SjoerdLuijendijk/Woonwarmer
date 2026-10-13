@@ -5,12 +5,12 @@ import { useEffect, useId, useMemo, useRef, useState, useTransition } from "reac
 import { downloadFile } from "../lib/download-file";
 import { invoiceTotals, type Company, type Invoice } from "../lib/invoice";
 import { EMPTY_CUSTOMER, emptyLine, stoveLine, todayIsoDate, toCustomer, toInvoiceLines, type DraftCustomer, type DraftLine } from "../lib/invoice-draft";
-import { formatPrice } from "../lib/price";
 import type { Stove } from "../lib/stoves";
 import CustomerFields from "./CustomerFields";
 import { useDialog } from "./DialogProvider";
 import { createInvoice, getCompanyForInvoice } from "./invoice-actions";
 import InvoiceLinesEditor from "./InvoiceLinesEditor";
+import InvoiceTotalsSummary from "./InvoiceTotalsSummary";
 
 const PREVIEW_DELAY_MS = 400;
 
@@ -170,11 +170,7 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
             <form className="invoice-form" onSubmit={handleCreate}>
               <CustomerFields customer={customer} onChange={setCustomer} />
               <InvoiceLinesEditor hourlyRateExCents={company ? (company.hourly_rate_ex_cents ?? null) : undefined} lines={lines} invalid={showLineErrors ? invalid : []} onChange={setLines} />
-              <dl className="invoice-totals">
-                <div><dt>Excl. btw</dt><dd>{formatPrice(totals.exclCents, { alwaysCents: true })}</dd></div>
-                <div><dt>Btw</dt><dd>{formatPrice(totals.vatCents, { alwaysCents: true })}</dd></div>
-                <div className="invoice-total"><dt>Totaal incl. btw</dt><dd>{formatPrice(totals.inclCents, { alwaysCents: true })}</dd></div>
-              </dl>
+              <InvoiceTotalsSummary totals={totals} />
               {error && <p className="field-error" role="alert">{error}</p>}
               <button className="primary-button primary-button--large" type="submit" disabled={pending || !company}>
                 {pending ? "Factuur maken…" : "Factuur maken (PDF)"}

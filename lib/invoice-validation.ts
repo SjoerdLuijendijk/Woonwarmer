@@ -34,6 +34,7 @@ export function parseCompany(formData: FormData): Result<Company> {
     phone: optionalText(formData.get("phone"), 40),
     payment_term_days: Number(formData.get("payment_term_days")),
     hourly_rate_ex_cents: optionalMoney(formData.get("hourly_rate_ex")),
+    invoice_footer: optionalText(String(formData.get("invoice_footer") ?? "").replace(/\r\n/g, "\n"), 2000),
   };
   if (!value.name || !value.address || !value.postal_code || !value.city) {
     return { ok: false, error: "Vul bedrijfsnaam, adres, postcode en plaats in." };
@@ -43,8 +44,14 @@ export function parseCompany(formData: FormData): Result<Company> {
   if (!Number.isInteger(value.payment_term_days) || value.payment_term_days < 0 || value.payment_term_days > 365) {
     return { ok: false, error: "Vul een betaaltermijn in dagen in (0–365)." };
   }
+  if (value.invoice_footer === undefined) return { ok: false, error: "De voettekst is te lang (maximaal 2000 tekens)." };
   if (value.hourly_rate_ex_cents === undefined) return { ok: false, error: "Vul het uurtarief in als bijvoorbeeld 55 of 52,50." };
   return { ok: true, value: value as Company };
+}
+
+/** A line price in cents; negative for a stove taken in part exchange. */
+export function isLinePrice(value: unknown): value is number {
+  return Number.isInteger(value) && Math.abs(value as number) <= MAX_PRICE_CENTS;
 }
 
 // Validates untrusted customer details and invoice lines sent by the invoice dialog.
@@ -70,14 +77,19 @@ export function parseInvoiceInput(input: { customer: unknown; lines: unknown }):
   const lines: InvoiceLine[] = [];
   for (const [index, rawLine] of input.lines.entries()) {
     const line = (typeof rawLine === "object" && rawLine) || {};
-    const { description, quantity, unit_price_cents: price, vat_rate: rate } = line as Record<string, unknown>;
+    const { description, quantity, unit_price_cents: price, vat_rate: rate, margin_scheme: marginScheme } = line as Record<string, unknown>;
     const cleanDescription = text(description, 200);
     const validQuantity = Number.isInteger(quantity) && (quantity as number) >= 1 && (quantity as number) <= MAX_QUANTITY;
-    const validPrice = Number.isInteger(price) && (price as number) >= 0 && (price as number) <= MAX_PRICE_CENTS;
-    if (!cleanDescription || !validQuantity || !validPrice || !isVatRate(rate)) {
+    if (!cleanDescription || !validQuantity || !isLinePrice(price) || !isVatRate(rate) || typeof marginScheme !== "boolean") {
       return { ok: false, error: `Regel ${index + 1} is niet compleet: vul omschrijving, aantal en prijs in.` };
     }
-    lines.push({ description: cleanDescription, quantity: quantity as number, unit_price_cents: price as number, vat_rate: rate });
+    lines.push({
+      description: cleanDescription,
+      quantity: quantity as number,
+      unit_price_cents: price,
+      vat_rate: marginScheme ? 0 : rate,
+      margin_scheme: marginScheme,
+    });
   }
   return { ok: true, value: { customer: customer as Customer, lines } };
 }

@@ -17,6 +17,8 @@ export type Company = {
   payment_term_days: number;
   /** Installation work per hour, excluding VAT; absent on invoices made before it existed. */
   hourly_rate_ex_cents?: number | null;
+  /** Small print at the bottom of every invoice; absent on invoices made before it existed. */
+  invoice_footer?: string | null;
 };
 
 /** VAT rate of installation work. */
@@ -31,8 +33,14 @@ export type Customer = {
   phone: string | null;
 };
 
-/** Unit price in cents including VAT. */
-export type InvoiceLine = { description: string; quantity: number; unit_price_cents: number; vat_rate: VatRate };
+/** Printed on invoices with margin scheme lines, as the law requires for used goods. */
+export const MARGIN_SCHEME_NOTE = "Bijzondere regeling – gebruikte goederen";
+
+/**
+ * Unit price in cents including VAT; negative for a stove taken in part exchange. A margin scheme
+ * line (a used stove) shows no VAT and has vat_rate 0.
+ */
+export type InvoiceLine = { description: string; quantity: number; unit_price_cents: number; vat_rate: VatRate; margin_scheme: boolean };
 
 export type Invoice = {
   number: string | null; // null for a draft preview
@@ -50,19 +58,27 @@ export function lineTotalCents(line: InvoiceLine) {
   return line.quantity * line.unit_price_cents;
 }
 
-// Prices include VAT; the VAT is calculated per rate over the summed line totals.
+const sumLines = (lines: InvoiceLine[]) => lines.reduce((sum, line) => sum + lineTotalCents(line), 0);
+
+// Prices include VAT; the VAT is calculated per rate over the summed line totals. Margin scheme
+// lines carry no VAT on the invoice and are totalled separately (marginCents).
 export function invoiceTotals(lines: InvoiceLine[]) {
+  const vatLines = lines.filter((line) => !line.margin_scheme);
   const groups: VatGroup[] = VAT_RATES.flatMap((rate) => {
-    const inclCents = lines.filter((line) => line.vat_rate === rate).reduce((sum, line) => sum + lineTotalCents(line), 0);
-    if (inclCents === 0 && !lines.some((line) => line.vat_rate === rate)) return [];
+    const rateLines = vatLines.filter((line) => line.vat_rate === rate);
+    if (rateLines.length === 0) return [];
+    const inclCents = sumLines(rateLines);
     const exclCents = Math.round((inclCents * 100) / (100 + rate));
     return [{ rate, exclCents, vatCents: inclCents - exclCents, inclCents }];
   });
+  const marginCents = sumLines(lines.filter((line) => line.margin_scheme));
   return {
     groups,
+    hasMarginScheme: lines.some((line) => line.margin_scheme),
+    marginCents,
     exclCents: groups.reduce((sum, group) => sum + group.exclCents, 0),
     vatCents: groups.reduce((sum, group) => sum + group.vatCents, 0),
-    inclCents: groups.reduce((sum, group) => sum + group.inclCents, 0),
+    inclCents: marginCents + groups.reduce((sum, group) => sum + group.inclCents, 0),
   };
 }
 

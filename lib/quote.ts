@@ -1,5 +1,5 @@
 import { isVatRate, MAX_INVOICE_LINES, MAX_QUANTITY, type InvoiceLine } from "./invoice";
-import { MAX_PRICE_CENTS } from "./price";
+import { isLinePrice } from "./invoice-validation";
 
 // Quotes (tables quotes and quote_lines). Keep in sync with the articles and quotes migration.
 export const QUOTE_STATUS_LABELS = { draft: "Concept", sent: "Verstuurd", accepted: "Geaccepteerd", rejected: "Afgewezen" } as const;
@@ -93,20 +93,21 @@ export function parseQuoteInput(input: unknown, today: string): Result<QuoteInpu
   for (const [index, rawLine] of rawLines.entries()) {
     const line = ((typeof rawLine === "object" && rawLine) || {}) as Record<string, unknown>;
     const description = text(line.description, 200);
-    const { quantity, unit_price_cents: price, vat_rate: rate } = line;
+    const { quantity, unit_price_cents: price, vat_rate: rate, margin_scheme: marginScheme } = line;
     const validQuantity = Number.isInteger(quantity) && (quantity as number) >= 1 && (quantity as number) <= MAX_QUANTITY;
-    const validPrice = Number.isInteger(price) && (price as number) >= 0 && (price as number) <= MAX_PRICE_CENTS;
-    if (!description || !validQuantity || !validPrice || !isVatRate(rate)) {
+    if (!description || !validQuantity || !isLinePrice(price) || !isVatRate(rate) || typeof marginScheme !== "boolean") {
       return { ok: false, error: `Regel ${index + 1} is niet compleet: vul omschrijving, aantal en prijs in.` };
     }
     lines.push({
       description,
       quantity: quantity as number,
-      unit_price_cents: price as number,
-      vat_rate: rate,
+      unit_price_cents: price,
+      vat_rate: marginScheme ? 0 : rate,
+      margin_scheme: marginScheme,
       stove_number: optionalId(line.stove_number),
       article_id: optionalId(line.article_id),
-      save_as_article: line.save_as_article === true,
+      // Articles have a VAT rate and a price of their own: no margin scheme or part exchange lines.
+      save_as_article: line.save_as_article === true && !marginScheme && price >= 0,
     });
   }
 

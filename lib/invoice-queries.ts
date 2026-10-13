@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Company, Invoice } from "./invoice";
 
-const COMPANY_COLUMNS = "name, address, postal_code, city, kvk_number, vat_number, iban, email, phone, payment_term_days, hourly_rate_ex_cents";
+const COMPANY_COLUMNS = "name, address, postal_code, city, kvk_number, vat_number, iban, email, phone, payment_term_days, hourly_rate_ex_cents, invoice_footer";
 
 export async function getCompany(supabase: SupabaseClient): Promise<Company | null> {
   const { data, error } = await supabase.from("company_settings").select(COMPANY_COLUMNS).maybeSingle();
@@ -13,7 +13,7 @@ export async function getInvoice(supabase: SupabaseClient, id: number): Promise<
   const { data, error } = await supabase
     .from("invoices")
     .select(
-      "invoice_number, issue_date, stove_number, seller, customer_name, customer_address, customer_postal_code, customer_city, customer_email, customer_phone, invoice_lines (position, description, quantity, unit_price_cents, vat_rate)",
+      "invoice_number, issue_date, stove_number, seller, customer_name, customer_address, customer_postal_code, customer_city, customer_email, customer_phone, invoice_lines (position, description, quantity, unit_price_cents, vat_rate, margin_scheme)",
     )
     .eq("id", id)
     .order("position", { referencedTable: "invoice_lines", ascending: true })
@@ -34,7 +34,13 @@ export async function getInvoice(supabase: SupabaseClient, id: number): Promise<
       email: data.customer_email,
       phone: data.customer_phone,
     },
-    lines: data.invoice_lines.map(({ description, quantity, unit_price_cents, vat_rate }) => ({ description, quantity, unit_price_cents, vat_rate })),
+    lines: data.invoice_lines.map(({ description, quantity, unit_price_cents, vat_rate, margin_scheme }) => ({
+      description,
+      quantity,
+      unit_price_cents,
+      vat_rate,
+      margin_scheme,
+    })),
   };
 }
 

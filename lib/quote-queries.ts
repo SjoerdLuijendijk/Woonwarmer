@@ -3,7 +3,7 @@ import { lineTotalCents, type VatRate } from "./invoice";
 import type { Quote, QuoteStatus, QuoteSummary } from "./quote";
 import type { Condition, StoveType } from "./stoves";
 
-type LineRow = { position: number; description: string; quantity: number; unit_price_cents: number; vat_rate: VatRate; stove_number: number | null; article_id: number | null };
+type LineRow = { position: number; description: string; quantity: number; unit_price_cents: number; vat_rate: VatRate; margin_scheme: boolean; stove_number: number | null; article_id: number | null };
 
 export async function listQuotes(supabase: SupabaseClient): Promise<QuoteSummary[]> {
   const { data, error } = await supabase
@@ -31,7 +31,7 @@ export async function getQuote(supabase: SupabaseClient, id: number): Promise<Qu
   const { data, error } = await supabase
     .from("quotes")
     .select(
-      "id, quote_number, status, issue_date, valid_until, customer_name, customer_address, customer_postal_code, customer_city, customer_email, customer_phone, notes, quote_lines (position, description, quantity, unit_price_cents, vat_rate, stove_number, article_id)",
+      "id, quote_number, status, issue_date, valid_until, customer_name, customer_address, customer_postal_code, customer_city, customer_email, customer_phone, notes, quote_lines (position, description, quantity, unit_price_cents, vat_rate, margin_scheme, stove_number, article_id)",
     )
     .eq("id", id)
     .order("position", { referencedTable: "quote_lines", ascending: true })
@@ -54,11 +54,12 @@ export async function getQuote(supabase: SupabaseClient, id: number): Promise<Qu
       phone: data.customer_phone,
     },
     notes: data.notes,
-    lines: (data.quote_lines as LineRow[]).map(({ description, quantity, unit_price_cents, vat_rate, stove_number, article_id }) => ({
+    lines: (data.quote_lines as LineRow[]).map(({ description, quantity, unit_price_cents, vat_rate, margin_scheme, stove_number, article_id }) => ({
       description,
       quantity,
       unit_price_cents,
       vat_rate,
+      margin_scheme,
       stove_number,
       article_id,
     })),
@@ -74,6 +75,7 @@ export type QuoteStoveOption = {
   shopName: string | null;
   stoveType: StoveType | null;
   condition: Condition | null;
+  madeToOrder: boolean;
   priceCents: number | null;
 };
 
@@ -81,7 +83,7 @@ export type QuoteStoveOption = {
 export async function listQuoteStoves(supabase: SupabaseClient): Promise<QuoteStoveOption[]> {
   const { data, error } = await supabase
     .from("stoves")
-    .select("number, brand, shop_name, stove_type, condition, price_cents")
+    .select("number, brand, shop_name, stove_type, condition, made_to_order, price_cents")
     .is("sold_at", null)
     .order("number", { ascending: false })
     .limit(2000);
@@ -92,6 +94,7 @@ export async function listQuoteStoves(supabase: SupabaseClient): Promise<QuoteSt
     shopName: stove.shop_name,
     stoveType: stove.stove_type,
     condition: stove.condition,
+    madeToOrder: stove.made_to_order,
     priceCents: stove.price_cents,
   }));
 }
