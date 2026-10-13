@@ -37,6 +37,8 @@ export default function StoveFields({ brands, stove }: StoveFieldsProps) {
   const id = useId();
   const [condition, setCondition] = useState<string | null>(stove?.condition ?? null);
   const [supply, setSupply] = useState<string | null>(stove ? (stove.madeToOrder ? "order" : "stock") : null);
+  // Made-to-order stoves (such as the supplier's catalogue) may lack sizes and flue details.
+  const detailsRequired = !(condition === "new" && supply === "order");
 
   function handleChoice(event: React.FormEvent<HTMLDivElement>) {
     const target = event.target;
@@ -63,6 +65,18 @@ export default function StoveFields({ brands, stove }: StoveFieldsProps) {
         <datalist id={`${id}-brands`}>
           {brands.map((brand) => <option key={brand} value={brand} />)}
         </datalist>
+
+        <label htmlFor={`${id}-shop-name`}>Productnaam <span className="muted">(optioneel)</span></label>
+        <input
+          id={`${id}-shop-name`}
+          name="shopName"
+          maxLength={MAX_TEXT_LENGTH}
+          autoComplete="off"
+          placeholder="Leeg: merk en type, bijv. Hwam Houtkachel"
+          aria-describedby={`${id}-shop-name-hint`}
+          defaultValue={stove?.shopName ?? undefined}
+        />
+        <p id={`${id}-shop-name-hint`} className="form-hint muted">De naam in de webshop.</p>
 
         {/* Pick a suggestion or type a type of your own. */}
         <label htmlFor={`${id}-stove-type`}>Type kachel <span className="muted">(optioneel)</span></label>
@@ -122,7 +136,7 @@ export default function StoveFields({ brands, stove }: StoveFieldsProps) {
                   min={DIMENSION_CM.min}
                   max={DIMENSION_CM.max}
                   step={1}
-                  required
+                  required={detailsRequired}
                   defaultValue={stove?.[key] ?? undefined}
                 />
               </label>
@@ -130,7 +144,7 @@ export default function StoveFields({ brands, stove }: StoveFieldsProps) {
           </div>
         </fieldset>
 
-        <ChoiceGroup legend="Rookafvoer" name="flueOutlet" options={FLUE_OUTLET_LABELS} defaultValue={stove?.flueOutlet} />
+        <ChoiceGroup legend="Rookafvoer" name="flueOutlet" options={FLUE_OUTLET_LABELS} defaultValue={stove?.flueOutlet} required={detailsRequired} />
 
         <label htmlFor={`${id}-flue-diameter`}>Maat afvoer <span className="muted">(Ø mm)</span></label>
         <input
@@ -142,7 +156,7 @@ export default function StoveFields({ brands, stove }: StoveFieldsProps) {
           min={FLUE_DIAMETER_MM.min}
           max={FLUE_DIAMETER_MM.max}
           step={1}
-          required
+          required={detailsRequired}
           defaultValue={stove?.flueDiameterMm ?? undefined}
         />
         <datalist id={`${id}-flue-diameters`}>

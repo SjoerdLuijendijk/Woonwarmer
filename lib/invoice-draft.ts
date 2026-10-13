@@ -32,7 +32,7 @@ export function emptyLine(): DraftLine {
   return { key: nextKey(), description: "", quantity: "1", price: "", vatRate: DEFAULT_VAT_RATE };
 }
 
-export function stoveLine(stove: Pick<Stove, "number" | "brand" | "stoveType" | "condition" | "priceCents">): DraftLine {
+export function stoveLine(stove: Pick<Stove, "number" | "brand" | "shopName" | "stoveType" | "condition" | "priceCents">): DraftLine {
   const condition = stove.condition ? `, ${CONDITION_LABELS[stove.condition].toLowerCase()}` : "";
   return {
     key: nextKey(),

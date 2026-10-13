@@ -71,6 +71,7 @@ export const quoteTotalCents = (quote: Pick<Quote, "lines">) => quote.lines.redu
 export type QuoteStoveOption = {
   number: number;
   brand: string;
+  shopName: string | null;
   stoveType: StoveType | null;
   condition: Condition | null;
   priceCents: number | null;
@@ -80,7 +81,7 @@ export type QuoteStoveOption = {
 export async function listQuoteStoves(supabase: SupabaseClient): Promise<QuoteStoveOption[]> {
   const { data, error } = await supabase
     .from("stoves")
-    .select("number, brand, stove_type, condition, price_cents")
+    .select("number, brand, shop_name, stove_type, condition, price_cents")
     .is("sold_at", null)
     .order("number", { ascending: false })
     .limit(2000);
@@ -88,6 +89,7 @@ export async function listQuoteStoves(supabase: SupabaseClient): Promise<QuoteSt
   return data.map((stove) => ({
     number: stove.number,
     brand: stove.brand,
+    shopName: stove.shop_name,
     stoveType: stove.stove_type,
     condition: stove.condition,
     priceCents: stove.price_cents,

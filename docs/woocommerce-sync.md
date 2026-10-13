@@ -75,8 +75,8 @@ stock with the app's data. Edits made in WordPress are overwritten.
 | App | WooCommerce product | Notes |
 | --- | --- | --- |
 | `number` | `sku` | Unique key for matching. |
-| `brand` + `stove_type` | `name` | E.g. "Hwam Houtkachel"; without a type only the brand. `product_name` and `model` are no longer used. |
-| `marketplace_ad`, else `description` | `description` | The stove's Marktplaats ad text when it has one, so the shop's GoedGeplaatst connector forwards it to Marktplaats; otherwise the optional free text. Plain text with line breaks. The product is synced again when the ad is regenerated or edited by hand in the ad dialog. |
+| `shop_name`, else `brand` + `stove_type` | `name` | The optional "Productnaam" (filled for catalogue products, e.g. "Dovre Sense 303"); otherwise e.g. "Hwam Houtkachel", or only the brand without a type. `model` and `product_name` (former shop titles of imported stoves) are no longer used. |
+| `marketplace_ad`, else `description` | `description` | Catalogue products start without an ad, so the supplier's text is used until someone opens their ad (see `docs/supplier-catalog.md`). The stove's Marktplaats ad text when it has one, so the shop's GoedGeplaatst connector forwards it to Marktplaats; otherwise the optional free text. Plain text with line breaks. The product is synced again when the ad is regenerated or edited by hand in the ad dialog. |
 | `price_cents` | `regular_price` | Incl. VAT, as a decimal string ("1250.00"). Assumes the shop enters prices incl. VAT. |
 | `condition` + `stove_type` | `categories` | New: "Nieuwe kachels". Gereviseerd: "Gereviseerde kachels" plus "Houtkachels" or "Speksteenkachels". Matched by slug; a missing category is skipped. |
 | `brand` | global attribute "Merk" (`pa_merk`) | Existing terms are matched ignoring case and spaces; a new brand is added as a term. |

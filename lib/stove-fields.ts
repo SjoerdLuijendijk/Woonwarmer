@@ -22,12 +22,13 @@ import {
 
 export type StoveFieldValues = {
   brand: string;
+  shop_name: string | null;
   condition: Condition;
-  height_cm: number;
-  width_cm: number;
-  depth_cm: number;
-  flue_outlet: FlueOutlet;
-  flue_diameter_mm: number;
+  height_cm: number | null;
+  width_cm: number | null;
+  depth_cm: number | null;
+  flue_outlet: FlueOutlet | null;
+  flue_diameter_mm: number | null;
   price_cents: number;
   shop_listed: boolean;
   made_to_order: boolean;
@@ -84,6 +85,11 @@ function readOptionalInteger(formData: FormData, name: string, range: Range) {
   return readInteger(formData, name, range) ?? INVALID;
 }
 
+function readOptionalChoiceKey<T extends string>(formData: FormData, name: string, options: Record<T, string>) {
+  if (String(formData.get(name) ?? "").length === 0) return null;
+  return readChoice(formData, name, options) ?? INVALID;
+}
+
 // Accepts Dutch ("5,5") and English ("5.5") decimals with at most one decimal place.
 function readOptionalDecimal(formData: FormData, name: string, range: Range) {
   const value = rawValue(formData, name).replace(",", ".");
@@ -109,23 +115,29 @@ function readOptionalBoolean(formData: FormData, name: string) {
 // Validates the untrusted stove form fields shared by creating and editing a stove.
 export function parseStoveFields(formData: FormData): ParseResult {
   const brand = readText(formData, "brand");
+  const shopName = readOptionalText(formData, "shopName");
   const condition = readChoice(formData, "condition", CONDITION_LABELS);
-  const height = readInteger(formData, "height", DIMENSION_CM);
-  const width = readInteger(formData, "width", DIMENSION_CM);
-  const depth = readInteger(formData, "depth", DIMENSION_CM);
-  const flueOutlet = readChoice(formData, "flueOutlet", FLUE_OUTLET_LABELS);
-  const flueDiameter = readInteger(formData, "flueDiameter", FLUE_DIAMETER_MM);
-  const price = parsePriceToCents(String(formData.get("price") ?? ""));
   const supply = readChoice(formData, "supply", SUPPLY_LABELS);
+  // Made-to-order stoves (such as the supplier's catalogue) may lack sizes and flue details.
+  const madeToOrder = condition === "new" && supply === "order";
+  const height = madeToOrder ? readOptionalInteger(formData, "height", DIMENSION_CM) : readInteger(formData, "height", DIMENSION_CM);
+  const width = madeToOrder ? readOptionalInteger(formData, "width", DIMENSION_CM) : readInteger(formData, "width", DIMENSION_CM);
+  const depth = madeToOrder ? readOptionalInteger(formData, "depth", DIMENSION_CM) : readInteger(formData, "depth", DIMENSION_CM);
+  const flueOutlet = madeToOrder ? readOptionalChoiceKey(formData, "flueOutlet", FLUE_OUTLET_LABELS) : readChoice(formData, "flueOutlet", FLUE_OUTLET_LABELS);
+  const flueDiameter = madeToOrder
+    ? readOptionalInteger(formData, "flueDiameter", FLUE_DIAMETER_MM)
+    : readInteger(formData, "flueDiameter", FLUE_DIAMETER_MM);
+  const price = parsePriceToCents(String(formData.get("price") ?? ""));
 
   if (!brand) return { ok: false, error: "Vul het merk in." };
+  if (shopName === INVALID) return { ok: false, error: `De productnaam mag maximaal ${MAX_TEXT_LENGTH} tekens zijn.` };
   if (!condition) return { ok: false, error: "Kies nieuw of gereviseerd." };
   if (condition === "new" && !supply) return { ok: false, error: "Kies uit voorraad of op bestelling." };
-  if (!height || !width || !depth) {
+  if (height === INVALID || width === INVALID || depth === INVALID || (!madeToOrder && (!height || !width || !depth))) {
     return { ok: false, error: `Vul hoogte, breedte en diepte in hele centimeters in (${DIMENSION_CM.min}–${DIMENSION_CM.max}).` };
   }
-  if (!flueOutlet) return { ok: false, error: "Kies of de rookafvoer boven, achter of allebei zit." };
-  if (!flueDiameter) {
+  if (flueOutlet === INVALID || (!madeToOrder && !flueOutlet)) return { ok: false, error: "Kies of de rookafvoer boven, achter of allebei zit." };
+  if (flueDiameter === INVALID || (!madeToOrder && !flueDiameter)) {
     return { ok: false, error: `Vul de maat van de afvoer in millimeters in (${FLUE_DIAMETER_MM.min}–${FLUE_DIAMETER_MM.max}).` };
   }
   if (!price) return { ok: false, error: "Vul een geldige verkoopprijs in, bijvoorbeeld 1.250 of 1250,50." };
@@ -170,6 +182,7 @@ export function parseStoveFields(formData: FormData): ParseResult {
     ok: true,
     values: {
       brand,
+      shop_name: shopName,
       condition,
       height_cm: height,
       width_cm: width,
@@ -180,7 +193,7 @@ export function parseStoveFields(formData: FormData): ParseResult {
       // An unticked (or disabled) checkbox is left out of the form data.
       shop_listed: formData.get("shopListed") === "on",
       // Only new stoves can be made to order.
-      made_to_order: condition === "new" && supply === "order",
+      made_to_order: madeToOrder,
       stove_type: stoveType,
       power_kw: power,
       min_power_kw: minPower,

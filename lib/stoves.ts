@@ -74,6 +74,8 @@ export type StoveInvoice = { id: number; number: string };
 export type Stove = {
   number: number;
   brand: string;
+  /** The web shop name, such as "Dovre Sense 303"; null: brand plus stove type. */
+  shopName: string | null;
   condition: Condition | null;
   heightCm: number | null;
   widthCm: number | null;

@@ -21,7 +21,7 @@ const ACTION_LABELS = ["Bewerken", "Factuur", "Advertentie", "Verwijderen"];
 
 function matchesSearch(stove: Stove, query: string) {
   if (!query) return true;
-  return [String(stove.number), stove.brand].some((value) => value.toLowerCase().includes(query));
+  return [String(stove.number), stove.brand, stove.shopName ?? ""].some((value) => value.toLowerCase().includes(query));
 }
 
 const inView = (stove: Stove, view: StockView) => (view === "sold") === Boolean(stove.soldAt);

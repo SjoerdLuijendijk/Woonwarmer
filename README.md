@@ -44,15 +44,15 @@ short-lived signed URLs.
 
 ## Product details
 
-Besides the required details (brand, condition, dimensions, flue outlet and diameter, price)
-a stove has optional product details that the web shop shows: stove type, power
+Besides the required details (brand, condition, dimensions, flue outlet and diameter, price;
+dimensions and flue details are optional for made-to-order stoves) a stove has an optional
+product name ("Productnaam", the web shop name) and optional product details that the web shop shows: stove type, power
 (kW), weight, rear flue centre height, external air supply, new firebox, thermostat, and under
 "Meer productgegevens" minimum/maximum power, efficiency, energy label, warranty, material and a
 description. The flue outlet can be top, rear or both.
 "Type kachel" is free text with suggestions (Houtkachel, Speksteenkachel, ...); a known type is
-stored as a key, anything else as typed. The web shop name is always the brand plus the stove type
-("Hwam Houtkachel"), or only the brand
-when no type is chosen. The model is no longer entered (migration `20260930240000_optional_stove_model.sql`).
+stored as a key, anything else as typed. The web shop name is the product name when filled in,
+otherwise the brand plus the stove type ("Hwam Houtkachel"), or only the brand when no type is chosen. The model is no longer entered (migration `20260930240000_optional_stove_model.sql`).
 
 ## Stock
 
@@ -136,6 +136,9 @@ cells keep the stored value, and rows without a SKU or with a SKU that occurs tw
 skipped and reported. Article prices are excluding VAT; quote lines use prices including VAT. PDFs
 show the logo top left (`lib/logo-paths.ts`, generated from `public/woonwarmer-logo.svg`).
 Migration: `20261001190000_create_articles_and_quotes.sql`.
+
+Instellingen → Catalogus importeren imports the product export (CSV) of HAVÉ Verwarming as
+made-to-order stoves; see `docs/supplier-catalog.md`. Migration: `20261013170000_add_stove_shop_name_and_supplier.sql`.
 
 "＋ Montage" in the quote and invoice dialogs adds a line "Montage (per uur)" at the hourly rate set
 under Bedrijfsgegevens (excluding VAT, stored as `company_settings.hourly_rate_ex_cents`; migration

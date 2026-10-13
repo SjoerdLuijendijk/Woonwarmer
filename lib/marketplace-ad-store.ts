@@ -11,6 +11,8 @@ export type StoredAd = {
   edited: boolean;
   /** The stove was edited after the manual change. */
   outdated: boolean;
+  /** Imported from a supplier's catalogue; its description is the supplier's text. */
+  fromCatalog: boolean;
 };
 
 export async function getAdPrompt(supabase: SupabaseClient): Promise<string | null> {
@@ -23,11 +25,13 @@ export async function getAdPrompt(supabase: SupabaseClient): Promise<string | nu
 export async function getStoredAd(supabase: SupabaseClient, stoveNumber: number): Promise<StoredAd | null> {
   const { data, error } = await supabase
     .from("stoves")
-    .select("marketplace_ad, marketplace_ad_edited, marketplace_ad_outdated")
+    .select("marketplace_ad, marketplace_ad_edited, marketplace_ad_outdated, supplier_sku")
     .eq("number", stoveNumber)
     .maybeSingle();
   if (error) throw error;
-  return data ? { text: data.marketplace_ad, edited: data.marketplace_ad_edited, outdated: data.marketplace_ad_outdated } : null;
+  return data
+    ? { text: data.marketplace_ad, edited: data.marketplace_ad_edited, outdated: data.marketplace_ad_outdated, fromCatalog: data.supplier_sku !== null }
+    : null;
 }
 
 // Returns false when the stove does not exist.
@@ -58,7 +62,8 @@ export async function saveManualAd(supabase: SupabaseClient, stoveNumber: number
 export async function refreshStoredAd(supabase: SupabaseClient, stoveNumber: number) {
   try {
     const stored = await getStoredAd(supabase, stoveNumber);
-    if (!stored) return;
+    // A catalogue product keeps the supplier's description in the shop until someone opens its ad.
+    if (!stored || (stored.fromCatalog && !stored.text)) return;
     if (stored.edited) await updateStoredAd(supabase, stoveNumber, { marketplace_ad_outdated: true });
     else await generateAndStoreAd(supabase, stoveNumber);
   } catch (error) {
