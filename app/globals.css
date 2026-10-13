@@ -2504,6 +2504,20 @@ a {
   font-size: 15px;
 }
 
+.cell-shop-name {
+  display: block;
+  font-size: 13px;
+}
+
+.catalog-import {
+  display: grid;
+  gap: 12px;
+}
+
+.catalog-import progress {
+  width: 100%;
+}
+
 .import-report {
   flex-basis: 100%;
   margin-top: 8px;

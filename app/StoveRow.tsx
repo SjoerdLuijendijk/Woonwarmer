@@ -35,7 +35,10 @@ export default function StoveRow({ stove, brands }: { stove: Stove; brands: stri
     <tr className={rowClass || undefined}>
       <td data-label="Nr." className="cell-number">{stove.number}</td>
       <td data-label="Foto's" className="cell-photo"><PhotoCell stoveNumber={stove.number} photos={stove.photos} /></td>
-      <td data-label="Merk" className="cell-brand">{stove.brand}</td>
+      <td data-label="Merk" className="cell-brand">
+        {stove.brand}
+        {stove.shopName && <span className="cell-shop-name muted">{stove.shopName}</span>}
+      </td>
       <td data-label="Type" className="cell-detail">{formatType(stove)}</td>
       <td data-label="H × B × D" className="cell-detail cell-nowrap cell-numeric">{formatDimensions(stove)}</td>
       <td data-label="Rookafvoer" className="cell-detail cell-nowrap">{formatFlue(stove)}</td>

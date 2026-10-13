@@ -1,5 +1,5 @@
 // The management pages, opened straight from the account menu. The routes keep the former Admin tab.
-export type AdminSection = "offertes" | "facturen" | "bedrijf" | "advertentie" | "artikelen";
+export type AdminSection = "offertes" | "facturen" | "bedrijf" | "advertentie" | "artikelen" | "catalogus";
 
 type AdminSectionInfo = {
   key: AdminSection;
@@ -17,6 +17,7 @@ export const ADMIN_SECTIONS: AdminSectionInfo[] = [
   { key: "bedrijf", label: "Bedrijfsgegevens", href: "/?tab=admin&sectie=bedrijf", setting: true },
   { key: "advertentie", label: "Prompt instellen", href: "/?tab=admin&sectie=advertentie", setting: true },
   { key: "artikelen", label: "Artikelen", href: "/?tab=admin&sectie=artikelen", setting: true, wide: true },
+  { key: "catalogus", label: "Catalogus importeren", href: "/?tab=admin&sectie=catalogus", setting: true },
 ];
 
 export function parseAdminSection(value: unknown): AdminSection | null {
