@@ -1,8 +1,6 @@
 // Server-only: reads the WooCommerce REST API keys. Import only from server code.
 
 const API_PATH = "/wp-json/wc/v3";
-// The public Store API, used for what the REST API lacks (such as smaller photo sizes).
-const STORE_API_PATH = "/wp-json/wc/store/v1";
 // Creating a product makes WordPress download its photos, which can take a while.
 const TIMEOUT_MS = 60_000;
 
@@ -17,7 +15,7 @@ export class WooCommerceError extends Error {
   }
 }
 
-type Config = { origin: string; baseUrl: string; storeUrl: string; authorization: string };
+type Config = { baseUrl: string; authorization: string };
 
 // Null when the shop connection is not configured for this environment.
 export function getWooCommerceConfig(): Config | null {
@@ -37,9 +35,7 @@ export function getWooCommerceConfig(): Config | null {
 
   const root = `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}`;
   return {
-    origin: parsed.origin,
     baseUrl: `${root}${API_PATH}`,
-    storeUrl: `${root}${STORE_API_PATH}`,
     authorization: `Basic ${Buffer.from(`${key}:${secret}`).toString("base64")}`,
   };
 }
@@ -54,11 +50,6 @@ function describeStatus(status: number, code: string | undefined) {
 
 export function wooRequest<T>(config: Config, method: "GET" | "POST" | "PUT" | "DELETE", path: string, body?: unknown): Promise<T> {
   return request<T>(`${config.baseUrl}${path}`, method, { Authorization: config.authorization }, body);
-}
-
-// Public, read-only Store API; sent without the API key.
-export function storeApiRequest<T>(config: Config, path: string): Promise<T> {
-  return request<T>(`${config.storeUrl}${path}`, "GET", {});
 }
 
 async function request<T>(url: string, method: "GET" | "POST" | "PUT" | "DELETE", auth: Record<string, string>, body?: unknown): Promise<T> {

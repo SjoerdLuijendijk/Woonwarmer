@@ -93,9 +93,8 @@ when the notes list is opened (migration `20261001120000_create_stove_notes.sql`
 
 Each stove has a "Webshop" checkbox (`shop_listed`) for the WooCommerce web shop, off by default.
 When a stove sells out the database unticks it, and it cannot be ticked while it is sold out.
-Changes to a stove are pushed to the WooCommerce shop in the background. Shop changes (stock,
-price, attributes, new products) are fetched on request with Admin → Webshop → "Alles uit webshop
-ophalen"; nothing comes back automatically. Configuration and field mapping: `docs/woocommerce-sync.md`.
+Changes to a stove are pushed to the WooCommerce shop in the background. The app is the only source
+of the shop; nothing comes back from it. Configuration and field mapping: `docs/woocommerce-sync.md`.
 
 Marktplaats and 2dehands are linked from WooCommerce itself and are not part of the app. The
 former columns `marketplace_listed` and `secondhand_listed` are no longer used.

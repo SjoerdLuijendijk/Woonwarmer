@@ -8,7 +8,6 @@ import { deleteStove } from "../lib/stove-delete";
 import { parseStockQuantity, parseStoveFields } from "../lib/stove-fields";
 import { LISTING_CHANNELS, PHOTOS_BUCKET, type ListingChannel } from "../lib/stoves";
 import { readPhotos, storePhotos, UserError } from "../lib/stove-photos";
-import { linkStove } from "../lib/woocommerce/link";
 import { syncStoveToShop } from "../lib/woocommerce/sync";
 
 export type ActionResult<T = object> = ({ ok: true } & T) | { ok: false; error: string };
@@ -223,25 +222,6 @@ export async function deleteStoveAction(stoveNumber: number, fromShop: boolean):
     console.error("Deleting stove failed", { stoveNumber, code: (error as { code?: unknown })?.code });
     return { ok: false, error: errorMessage(error) };
   }
-}
-
-// Links an imported stove to its web shop product and updates the product right away. From then on
-// the app keeps the product up to date, like for stoves added in the app.
-export async function linkStoveToShop(stoveNumber: number): Promise<ActionResult> {
-  if (!isPositiveId(stoveNumber)) return { ok: false, error: "Onbekende kachel." };
-
-  const { supabase, isMember } = await requireTeamMember();
-  if (!isMember) return NO_ACCESS;
-
-  let result;
-  try {
-    result = await linkStove(supabase, stoveNumber);
-  } catch (error) {
-    return { ok: false, error: errorMessage(error) };
-  }
-  revalidatePath("/");
-  if (result.ok) return { ok: true };
-  return { ok: false, error: result.notFound ? result.error : `Gekoppeld, maar de webshop is niet bijgewerkt: ${result.error}` };
 }
 
 // Retries the web shop update right away, for example after the shop was unreachable.
