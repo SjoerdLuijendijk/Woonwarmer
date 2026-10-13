@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { listArticles } from "../lib/article-queries";
+import type { Article } from "../lib/articles";
 import { requireTeamMember } from "../lib/auth";
 import type { Company, Invoice } from "../lib/invoice";
 import { getCompany, getInvoice } from "../lib/invoice-queries";
@@ -32,10 +34,12 @@ export async function saveCompanySettings(formData: FormData): Promise<ActionRes
   return { ok: true };
 }
 
-export async function getCompanyForInvoice(): Promise<ActionResult<{ company: Company | null }>> {
+// What the invoice dialog needs: the seller details and the articles to pick lines from.
+export async function getInvoiceSources(): Promise<ActionResult<{ company: Company | null; articles: Article[] }>> {
   const { supabase, isMember } = await requireTeamMember();
   if (!isMember) return NO_ACCESS;
-  return { ok: true, company: await getCompany(supabase) };
+  const [company, articles] = await Promise.all([getCompany(supabase), listArticles(supabase)]);
+  return { ok: true, company, articles };
 }
 
 // stoveNumber null: a separate invoice that is not about a stove.
