@@ -93,3 +93,10 @@ export function parseInvoiceInput(input: { customer: unknown; lines: unknown }):
   }
   return { ok: true, value: { customer: customer as Customer, lines } };
 }
+
+/** Units of the invoiced stove to take from its stock; null when invalid. Only an invoice for a stove takes stock. */
+export function parseStockDeduction(value: unknown, stoveNumber: number | null): number | null {
+  if (value === undefined) return 0;
+  if (!Number.isInteger(value) || (value as number) < 0 || (value as number) > MAX_QUANTITY) return null;
+  return stoveNumber === null && value !== 0 ? null : (value as number);
+}

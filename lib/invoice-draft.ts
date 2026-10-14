@@ -111,6 +111,12 @@ export function toInvoiceLines(lines: DraftLine[]) {
   return { valid, invalid };
 }
 
+/** Units of a stove on the lines that came from it (stove line, quote line); incomplete quantities count as 0. */
+export function stoveUnits(lines: DraftLine[], stoveNumber: number | null) {
+  if (stoveNumber === null) return 0;
+  return lines.reduce((sum, line) => (line.stoveNumber === stoveNumber ? sum + (parseQuantity(line.quantity) ?? 0) : sum), 0);
+}
+
 export function toCustomer(draft: DraftCustomer): Customer {
   const clean = (value: string) => value.trim();
   return {

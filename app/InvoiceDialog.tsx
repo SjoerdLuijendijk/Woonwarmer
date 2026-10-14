@@ -5,12 +5,14 @@ import { useEffect, useId, useMemo, useRef, useState, useTransition } from "reac
 import { downloadFile } from "../lib/download-file";
 import type { Article } from "../lib/articles";
 import { invoiceTotals, MAX_INVOICE_LINES, type Company, type Invoice } from "../lib/invoice";
-import { EMPTY_CUSTOMER, emptyLine, stoveLine, todayIsoDate, toCustomer, toInvoiceLines, type DraftCustomer, type DraftLine } from "../lib/invoice-draft";
+import { EMPTY_CUSTOMER, emptyLine, stoveLine, stoveUnits, todayIsoDate, toCustomer, toInvoiceLines, type DraftCustomer, type DraftLine } from "../lib/invoice-draft";
+import type { InvoiceStock } from "../lib/invoice-queries";
 import type { Stove } from "../lib/stoves";
 import CustomerFields from "./CustomerFields";
 import { useDialog } from "./DialogProvider";
 import { createInvoice, getInvoiceSources } from "./invoice-actions";
 import InvoiceLinesEditor from "./InvoiceLinesEditor";
+import InvoiceStockOption, { stockDeduction } from "./InvoiceStockOption";
 import InvoiceTotalsSummary from "./InvoiceTotalsSummary";
 import QuoteLinePicker from "./QuoteLinePicker";
 
@@ -39,6 +41,8 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
   const [isOpen, setIsOpen] = useState(false);
   const [company, setCompany] = useState<Company | null | undefined>(undefined);
   const [articles, setArticles] = useState<Article[] | null>(null);
+  const [stock, setStock] = useState<InvoiceStock | null>(null);
+  const [takeFromStock, setTakeFromStock] = useState(false);
   const [customer, setCustomer] = useState<DraftCustomer>(EMPTY_CUSTOMER);
   const [lines, setLines] = useState<DraftLine[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -50,24 +54,30 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
 
   const { valid, invalid } = useMemo(() => toInvoiceLines(lines), [lines]);
   const totals = invoiceTotals(valid);
+  const units = stoveUnits(lines, stoveNumber);
+  const deduction = stockDeduction(stock, units, takeFromStock);
 
   async function open() {
     const prefill = loadPrefill ? await loadPrefill() : null;
     if (loadPrefill && !prefill) return;
     setCustomer(prefill?.customer ?? EMPTY_CUSTOMER);
     setLines(prefill?.lines ?? [stove ? stoveLine(stove) : emptyLine()]);
+    const invoicedStove = stove?.number ?? prefill?.stoveNumber ?? null;
     setPrefillStove(prefill?.stoveNumber ?? null);
     setCreated(null);
     setError(null);
     setShowLineErrors(false);
     setCompany(undefined);
     setArticles(null);
+    setStock(null);
     setIsOpen(true);
     dialogRef.current?.showModal();
-    getInvoiceSources().then((result) => {
+    getInvoiceSources(invoicedStove).then((result) => {
       if (!result.ok) return setError(result.error);
       setCompany(result.company);
       setArticles(result.articles);
+      setStock(result.stock);
+      setTakeFromStock(result.stock?.openSales === 0);
     });
   }
 
@@ -112,15 +122,20 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
       setError(`Regel ${invalid[0] + 1} is niet compleet: vul omschrijving, aantal en prijs in.`);
       return;
     }
+    if (stock && deduction > stock.quantity) {
+      setError(`Er staan maar ${stock.quantity} van kachel ${stoveNumber} op voorraad.`);
+      return;
+    }
+    const stockNote = deduction > 0 ? ` Kachel ${stoveNumber} gaat ${deduction} keer van de voorraad.` : "";
     const confirmed = await confirm({
       title: "Factuur definitief maken?",
-      message: "De factuur krijgt een factuurnummer en kan daarna niet meer worden gewijzigd.",
+      message: `De factuur krijgt een factuurnummer en kan daarna niet meer worden gewijzigd.${stockNote}`,
       confirmLabel: "Factuur maken",
     });
     if (!confirmed) return;
 
     startTransition(async () => {
-      const result = await createInvoice(stoveNumber, { customer: toCustomer(customer), lines: valid });
+      const result = await createInvoice(stoveNumber, { customer: toCustomer(customer), lines: valid, stockDeduction: deduction });
       if (!result.ok) {
         setError(result.error);
         return;
@@ -182,6 +197,9 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
                 />
               </InvoiceLinesEditor>
               <InvoiceTotalsSummary totals={totals} />
+              {stoveNumber !== null && (
+                <InvoiceStockOption stoveNumber={stoveNumber} stock={stock} units={units} checked={takeFromStock} onChange={setTakeFromStock} />
+              )}
               {error && <p className="field-error" role="alert">{error}</p>}
               <button className="primary-button primary-button--large" type="submit" disabled={pending || !company}>
                 {pending ? "Factuur maken…" : "Factuur maken (PDF)"}

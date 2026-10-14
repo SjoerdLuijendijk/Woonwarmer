@@ -9,6 +9,26 @@ export async function getCompany(supabase: SupabaseClient): Promise<Company | nu
   return data;
 }
 
+/** Stock of the invoiced stove, so the invoice dialog can offer to take the sold units from it. */
+export type InvoiceStock = {
+  quantity: number;
+  madeToOrder: boolean;
+  /** Sales placed with "Verkocht" and not delivered yet; each one already took a unit. */
+  openSales: number;
+};
+
+// Null when the stove no longer exists.
+export async function getInvoiceStock(supabase: SupabaseClient, stoveNumber: number): Promise<InvoiceStock | null> {
+  const [stove, sales] = await Promise.all([
+    supabase.from("stoves").select("stock_quantity, made_to_order").eq("number", stoveNumber).maybeSingle(),
+    supabase.from("stove_notes").select("id", { count: "exact", head: true }).eq("stove_number", stoveNumber).eq("status", "sold"),
+  ]);
+  if (stove.error) throw stove.error;
+  if (sales.error) throw sales.error;
+  if (!stove.data) return null;
+  return { quantity: stove.data.stock_quantity, madeToOrder: stove.data.made_to_order, openSales: sales.count ?? 0 };
+}
+
 export async function getInvoice(supabase: SupabaseClient, id: number): Promise<Invoice | null> {
   const { data, error } = await supabase
     .from("invoices")
