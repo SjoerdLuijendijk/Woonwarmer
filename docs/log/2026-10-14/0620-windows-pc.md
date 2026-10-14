@@ -17,6 +17,15 @@ Branches: `fix/sign-photo-urls-in-batches`, `feature/fast-stock-page`
   Catalogus importeren sends every made-to-order stove with a shop product again. Released to
   staging and production (branch `feature/made-to-order-in-stock`).
 
+- Checked the shop's GoedGeplaatst plugin: it is the official "WooCommerce GoedGeplaatst Connector"
+  v1.1.1 (`woo-gg-connector`, Internet Service Nederland), not GoStockr. It exports a product feed
+  on a schedule (from 08:00 every 4 hours), all 6 shop categories are mapped, and there are no
+  per-product settings, so the app cannot send a "place on Marktplaats" flag. The 08:00 export held
+  only the 96 in-stock products. `directForwardToMp` belongs to GoedGeplaatst's Channable feed and
+  is disabled there according to their docs. Forwarding to Marktplaats happens in the
+  GoedGeplaatst portal.
+- Vercel marks the WooCommerce keys as sensitive, so `vercel env pull` does not return them.
+
 ## Decisions
 - User: show 70 stoves on opening, the rest while scrolling or searching.
 
