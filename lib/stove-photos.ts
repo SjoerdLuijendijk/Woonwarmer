@@ -57,10 +57,20 @@ export async function storePhotos(supabase: SupabaseClient, stoveNumber: number,
   return ids;
 }
 
+// Storage signs at most 1000 paths per request.
+const SIGN_BATCH_SIZE = 1000;
+
 // Private bucket: hand out short-lived links for display.
 export async function signPhotoUrls(supabase: SupabaseClient, paths: string[]) {
-  if (paths.length === 0) return new Map<string, string>();
-  const { data, error } = await supabase.storage.from(PHOTOS_BUCKET).createSignedUrls(paths, SIGNED_URL_TTL_SECONDS);
-  if (error) throw error;
-  return new Map(data.flatMap((item) => (item.path && item.signedUrl ? [[item.path, item.signedUrl] as const] : [])));
+  const batches: string[][] = [];
+  for (let i = 0; i < paths.length; i += SIGN_BATCH_SIZE) batches.push(paths.slice(i, i + SIGN_BATCH_SIZE));
+  const results = await Promise.all(
+    batches.map((batch) => supabase.storage.from(PHOTOS_BUCKET).createSignedUrls(batch, SIGNED_URL_TTL_SECONDS)),
+  );
+  const urls = new Map<string, string>();
+  for (const { data, error } of results) {
+    if (error) throw error;
+    for (const item of data) if (item.path && item.signedUrl) urls.set(item.path, item.signedUrl);
+  }
+  return urls;
 }
