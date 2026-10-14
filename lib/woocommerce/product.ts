@@ -18,7 +18,8 @@ const GLOBAL_SPEC_KEYS: StoveSpecKey[] = ["condition", "stoveType", "power", "fl
 // shares the SKU (made in WordPress under a number the app handed out as well) is never overwritten.
 export const STOVE_NUMBER_META_KEY = "woonwarmer_stove_number";
 // GoedGeplaatst only forwards products with stock to Marktplaats, so made-to-order stoves show one.
-const MADE_TO_ORDER_SHOP_STOCK = 1;
+// Backorders are allowed, so a shop order makes it a backorder until the next sync.
+export const MADE_TO_ORDER_STOCK_FIELDS = { manage_stock: true, stock_quantity: 1, stock_status: "instock", backorders: "notify" } as const;
 
 // Photos keep this name in the shop, so a later sync reuses them instead of uploading them again.
 export function shopImageName(stoveNumber: number, photoId: number) {
@@ -89,9 +90,8 @@ export async function buildShopProduct(stove: StoveDetails, adText: string | nul
     categories: categoryIds.map((id) => ({ id })),
     attributes,
     images,
-    // Made to order: backorders are allowed, so a shop order makes it a backorder until the next sync.
     ...(stove.madeToOrder
-      ? { manage_stock: true, stock_quantity: MADE_TO_ORDER_SHOP_STOCK, stock_status: "instock", backorders: "notify" }
+      ? MADE_TO_ORDER_STOCK_FIELDS
       : { manage_stock: true, stock_quantity: stove.stockQuantity, stock_status: inStock ? "instock" : "outofstock", backorders: "no" }),
   };
 }

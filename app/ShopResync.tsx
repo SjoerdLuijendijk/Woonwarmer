@@ -1,21 +1,19 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { listMadeToOrderShopStoves, resyncShopStove } from "./catalog-actions";
-import { useDialog } from "./DialogProvider";
+import { useEffect, useState } from "react";
+import type { RestockFailure } from "../lib/woocommerce/stock";
+import { restockMadeToOrderShopAction } from "./catalog-actions";
 
-type Progress = { done: number; total: number; failed: { number: number; message: string }[] };
+type Outcome = { updated: number; failed: RestockFailure[]; finished: boolean };
+// Each call stops after about 45 seconds; this many calls cover far more products than the shop has.
+const MAX_CALLS = 20;
 
-// Sends every made-to-order stove to the web shop again, one by one, for example after the way
-// they are sent has changed. Shop sync errors also show on the stoves in the stock page.
+// Puts sold made-to-order stoves back in stock in the web shop right away; the app also does this
+// every night. Other product details are left alone.
 export default function ShopResync() {
   const [running, setRunning] = useState(false);
-  const [progress, setProgress] = useState<Progress | null>(null);
+  const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const stopRequested = useRef(false);
-  const { confirm } = useDialog();
-  const router = useRouter();
 
   useEffect(() => {
     if (!running) return;
@@ -26,58 +24,45 @@ export default function ShopResync() {
 
   async function start() {
     setError(null);
-    const list = await listMadeToOrderShopStoves().catch(() => null);
-    if (!list) return setError("Geen verbinding met de app.");
-    if (!list.ok) return setError(list.error);
-    if (list.numbers.length === 0) return setError("Er staan geen kachels op bestelling in de webshop.");
-
-    const confirmed = await confirm({
-      title: `${list.numbers.length} kachels bijwerken in de webshop?`,
-      message: "Elke kachel op bestelling wordt opnieuw naar de webshop gestuurd. Laat deze pagina open tot het klaar is.",
-      confirmLabel: "Bijwerken",
-    });
-    if (!confirmed) return;
-
-    stopRequested.current = false;
     setRunning(true);
-    const state: Progress = { done: 0, total: list.numbers.length, failed: [] };
-    setProgress({ ...state });
-    for (const number of list.numbers) {
-      if (stopRequested.current) break;
-      try {
-        const result = await resyncShopStove(number);
-        if (!result.ok) state.failed.push({ number, message: result.error });
-      } catch {
-        state.failed.push({ number, message: "Geen verbinding met de app." });
+    const total: Outcome = { updated: 0, failed: [], finished: false };
+    setOutcome({ ...total });
+    for (let call = 0; call < MAX_CALLS && !total.finished; call++) {
+      const response = await restockMadeToOrderShopAction().catch(() => null);
+      if (!response || !response.ok) {
+        setError(response ? response.error : "Geen verbinding met de app.");
+        break;
       }
-      state.done++;
-      setProgress({ ...state, failed: [...state.failed] });
+      total.updated += response.result.updated;
+      total.failed.push(...response.result.failed);
+      total.finished = response.result.finished;
+      setOutcome({ ...total, failed: [...total.failed] });
     }
     setRunning(false);
-    router.refresh();
   }
 
   return (
     <div className="catalog-import">
       <h2>Webshop bijwerken</h2>
-      <p className="muted">Stuurt alle kachels op bestelling opnieuw naar de webshop, met hun huidige gegevens.</p>
+      <p className="muted">
+        Een verkochte kachel op bestelling die online staat, krijgt in de webshop weer voorraad 1, zodat hij op Marktplaats
+        blijft. Dit gebeurt elke nacht vanzelf; met deze knop meteen. Prijzen, teksten en foto&apos;s blijven zoals ze zijn.
+      </p>
       <div className="button-row">
-        {running ? (
-          <button type="button" className="secondary-button" onClick={() => (stopRequested.current = true)}>Stoppen</button>
-        ) : (
-          <button type="button" className="primary-button" onClick={start}>Kachels op bestelling bijwerken</button>
-        )}
+        <button type="button" className="primary-button" onClick={start} disabled={running}>
+          {running ? "Bezig…" : "Voorraad nu bijwerken"}
+        </button>
       </div>
       {error && <p className="field-error" role="alert">{error}</p>}
-      {progress && (
+      {outcome && (
         <div className="notice import-report" role="status">
           <p>
             {running ? "Bezig: " : "Klaar: "}
-            {progress.done} van {progress.total} bijgewerkt{progress.failed.length > 0 && `, ${progress.failed.length} mislukt`}.
+            {outcome.updated} {outcome.updated === 1 ? "kachel" : "kachels"} weer op voorraad gezet
+            {outcome.failed.length > 0 && `, ${outcome.failed.length} mislukt`}.
           </p>
-          {running && <progress value={progress.done} max={progress.total} aria-label="Voortgang" />}
-          {progress.failed.length > 0 && (
-            <ul>{progress.failed.map(({ number, message }) => <li key={number}>Kachel {number}: {message}</li>)}</ul>
+          {outcome.failed.length > 0 && (
+            <ul>{outcome.failed.map(({ sku, message }) => <li key={sku}>Kachel {sku}: {message}</li>)}</ul>
           )}
         </div>
       )}

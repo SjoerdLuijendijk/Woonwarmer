@@ -1,4 +1,5 @@
 {
   "framework": "nextjs",
-  "regions": ["dub1"]
+  "regions": ["dub1"],
+  "crons": [{ "path": "/api/cron/restock-shop", "schedule": "0 4 * * *" }]
 }
