@@ -5,6 +5,7 @@ import { getCompany, listInvoices } from "../lib/invoice-queries";
 import { getAdPrompt } from "../lib/marketplace-ad-store";
 import AdPromptForm from "./AdPromptForm";
 import CatalogImport from "./CatalogImport";
+import ShopResync from "./ShopResync";
 import CompanySettingsForm from "./CompanySettingsForm";
 import { listArticles } from "../lib/article-queries";
 import { listQuotes } from "../lib/quote-queries";
@@ -37,7 +38,10 @@ export default async function AdminPanel({ supabase, section }: { supabase: Supa
       {section === "advertentie" ? (
         <AdPromptForm prompt={(await getAdPrompt(supabase)) ?? DEFAULT_AD_PROMPT} />
       ) : section === "catalogus" ? (
-        <CatalogImport />
+        <>
+          <CatalogImport />
+          <ShopResync />
+        </>
       ) : (
         <CompanySettingsForm company={await getCompany(supabase)} />
       )}
