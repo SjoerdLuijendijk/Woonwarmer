@@ -110,11 +110,13 @@ export type Stove = {
   stockQuantity: number;
   soldAt: string | null;
   createdAt: string;
-  photos: StovePhoto[];
+  /** The first photo, for the stock table; all photos are loaded when they are opened. */
+  mainPhoto: StovePhoto | null;
+  photoCount: number;
   invoices: StoveInvoice[];
   /** Open sales notes: in negotiation, or sold but not yet done. */
   notes: StoveNote[];
 };
 
 /** A stove without its photos, invoices and notes. */
-export type StoveDetails = Omit<Stove, "photos" | "invoices" | "notes">;
+export type StoveDetails = Omit<Stove, "mainPhoto" | "photoCount" | "invoices" | "notes">;

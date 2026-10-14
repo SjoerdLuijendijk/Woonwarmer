@@ -42,7 +42,8 @@ export default function EditStoveDialog({ stove, brands }: { stove: Stove; brand
       <dialog ref={dialogRef} className="edit-dialog" aria-labelledby={titleId}>
         <form key={formKey} onSubmit={handleSubmit} className="form-stack">
           <h2 id={titleId}>Kachel {stove.number} bewerken</h2>
-          <StovePhotoManager stoveNumber={stove.number} photos={stove.photos} />
+          {/* formKey is 0 until the dialog is opened: the photos are only loaded then. */}
+          {formKey > 0 && <StovePhotoManager stoveNumber={stove.number} mainPhoto={stove.mainPhoto} />}
           <StoveFields brands={brands} stove={stove} />
           {error && <p className="field-error" role="alert">{error}</p>}
           <div className="button-row dialog-actions">

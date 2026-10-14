@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getOpenNotesByStove } from "./stove-note-queries";
 import { thumbnailPath } from "./photo-thumbnails";
 import { signPhotoUrls } from "./stove-photos";
-import type { Stove, StoveDetails, StoveInvoice } from "./stoves";
+import type { Stove, StoveDetails, StoveInvoice, StovePhoto } from "./stoves";
 
 const DETAIL_COLUMNS =
   "number, brand, shop_name, condition, height_cm, width_cm, depth_cm, flue_outlet, flue_diameter_mm, price_cents, stove_type, power_kw, min_power_kw, max_power_kw, weight_kg, flue_center_height_cm, external_air_supply, new_firebox, thermostat, efficiency_percent, energy_label, warranty_years, material, description, shop_listed, shop_sync_error, shop_product_id, made_to_order, stock_quantity, sold_at, created_at";
@@ -99,23 +99,40 @@ export async function getStoves(supabase: SupabaseClient): Promise<Stove[]> {
     invoicesByStove.set(invoice.stove_number, list);
   }
 
-  const paths = stoves.data.flatMap((stove) => stove.stove_photos.map((photo) => photo.path));
-  const [urlByPath, thumbUrlByPath] = await Promise.all([
-    signPhotoUrls(supabase, paths),
-    // Thumbnails are optional: without them the full photos are shown.
-    signPhotoUrls(supabase, paths.map(thumbnailPath)).catch(() => new Map<string, string>()),
-  ]);
+  // Only the main photos are signed here, to keep the page fast with a large stock; getStovePhotos
+  // signs all photos of one stove when they are opened.
+  const mainPhotos = stoves.data.flatMap((stove) => stove.stove_photos.slice(0, 1));
+  const signed = await signPhotos(supabase, mainPhotos);
 
   return stoves.data.map((stove) => ({
     ...toStoveDetails(stove as DetailsRow),
     invoices: invoicesByStove.get(stove.number) ?? [],
     notes: notesByStove.get(stove.number) ?? [],
-    photos: stove.stove_photos.map((photo) => ({
-      id: photo.id,
-      url: urlByPath.get(photo.path) ?? null,
-      thumbUrl: thumbUrlByPath.get(thumbnailPath(photo.path)) ?? null,
-    })),
+    mainPhoto: stove.stove_photos[0] ? signed.get(stove.stove_photos[0].id) ?? null : null,
+    photoCount: stove.stove_photos.length,
   }));
+}
+
+// All photos of one stove, in upload order.
+export async function getStovePhotos(supabase: SupabaseClient, number: number): Promise<StovePhoto[]> {
+  const photos = await getStovePhotoPaths(supabase, number);
+  const signed = await signPhotos(supabase, photos);
+  return photos.map((photo) => signed.get(photo.id)!);
+}
+
+async function signPhotos(supabase: SupabaseClient, photos: { id: number; path: string }[]) {
+  const paths = photos.map((photo) => photo.path);
+  const [urlByPath, thumbUrlByPath] = await Promise.all([
+    signPhotoUrls(supabase, paths),
+    // Thumbnails are optional: without them the full photos are shown.
+    signPhotoUrls(supabase, paths.map(thumbnailPath)).catch(() => new Map<string, string>()),
+  ]);
+  return new Map<number, StovePhoto>(
+    photos.map((photo) => [
+      photo.id,
+      { id: photo.id, url: urlByPath.get(photo.path) ?? null, thumbUrl: thumbUrlByPath.get(thumbnailPath(photo.path)) ?? null },
+    ]),
+  );
 }
 
 // Null: the stove does not exist (or is not visible to the caller).
