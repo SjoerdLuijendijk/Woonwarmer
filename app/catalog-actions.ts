@@ -64,3 +64,34 @@ export async function importCatalogProductAction(value: unknown, listInShop: unk
     outcome: { status: result.status, number: result.number, ...(warnings.length > 0 ? { warning: warnings.join("; ") } : {}) },
   };
 }
+
+// The made-to-order stoves that have a web shop product, for Admin → Catalogus importeren →
+// "Webshop bijwerken".
+export async function listMadeToOrderShopStoves(): Promise<ActionResult<{ numbers: number[] }>> {
+  const { supabase, isMember } = await requireTeamMember();
+  if (!isMember) return NO_ACCESS;
+
+  const { data, error } = await supabase
+    .from("stoves")
+    .select("number")
+    .eq("made_to_order", true)
+    .not("shop_product_id", "is", null)
+    .order("number")
+    .limit(5000);
+  if (error) {
+    console.error("Listing made-to-order stoves failed", { code: error.code });
+    return { ok: false, error: "De kachels konden niet worden opgehaald." };
+  }
+  return { ok: true, numbers: data.map((row) => row.number) };
+}
+
+// Sends one stove to the web shop again; the browser calls it once per stove.
+export async function resyncShopStove(stoveNumber: unknown): Promise<ActionResult> {
+  if (!Number.isSafeInteger(stoveNumber) || (stoveNumber as number) <= 0) return { ok: false, error: "Onbekende kachel." };
+
+  const { supabase, isMember } = await requireTeamMember();
+  if (!isMember) return NO_ACCESS;
+
+  const error = await syncStoveToShop(supabase, stoveNumber as number);
+  return error ? { ok: false, error } : { ok: true };
+}

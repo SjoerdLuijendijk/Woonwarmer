@@ -87,7 +87,7 @@ stock with the app's data. Edits made in WordPress are overwritten.
 | dimensions, `weight_kg`, `flue_diameter_mm`, `flue_center_height_cm`, yes/no fields, min/max power, efficiency, energy label, warranty, material | product attributes | Labels as in the app's Marktplaats ad details (`lib/stove-specs.ts`), e.g. "Harthoogte achter: 94 cm". Unknown values are left out. WooCommerce's own `dimensions` and `weight` are not used, because their units depend on shop settings. |
 | photos | `images` | Sent as short-lived signed URLs that WordPress downloads once. Each image is named `kachel-<number>-foto-<photo id>`, so later syncs reuse it instead of uploading it again. |
 | `stock_quantity` | `manage_stock: true`, `stock_quantity` | |
-| `made_to_order` | `manage_stock: false`, `stock_status: "onbackorder"` | Always orderable. |
+| `made_to_order` | `manage_stock: true`, `stock_quantity: 1`, `backorders: "notify"` | Always orderable. One unit in stock because GoedGeplaatst only forwards products with stock to Marktplaats; a shop order turns it into a backorder until the next sync. |
 
 ## State rules
 
