@@ -7,7 +7,8 @@ import { createMissingPhotoThumbnails } from "./actions";
 // Asks the server to make thumbnails for older photos while the stock page is open. They show up on
 // the next page load. Stops when nothing is left, or when a call makes no progress.
 export function useThumbnailBackfill(stoves: Stove[]) {
-  const missing = stoves.some((stove) => stove.photos.some((photo) => photo.url && !photo.thumbUrl));
+  // Only the main photos are known here; the server action makes thumbnails for all photos.
+  const missing = stoves.some((stove) => stove.mainPhoto?.url && !stove.mainPhoto.thumbUrl);
   const started = useRef(false);
 
   useEffect(() => {

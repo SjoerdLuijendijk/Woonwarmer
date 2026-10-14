@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { formatPrice } from "../lib/price";
 import { STOCK_VIEW_HREFS, type StockView } from "../lib/stock-views";
 import { kindOf, unitsOf, type StoveKind as Kind } from "../lib/stove-display";
 import { DEFAULT_SORT, nextSort, sortStoves, type SortKey } from "../lib/stove-sort";
 import { LISTING_CHANNELS, type ListingChannel, type Stove } from "../lib/stoves";
+import ShowMoreRows from "./ShowMoreRows";
 import SortableHeader from "./SortableHeader";
 import StockPrintList from "./StockPrintList";
 import StoveRow from "./StoveRow";
@@ -18,6 +19,7 @@ const KIND_NOUNS: Record<Kind, string> = { used: "gereviseerde kachels", new: "n
 const VIEW_PLACES: Record<StockView, string> = { available: "het aanbod", sold: "het verkocht archief" };
 const VIEW_TITLES: Record<StockView, string> = { available: "Aanbod", sold: "Verkocht archief" };
 const ACTION_LABELS = ["Bewerken", "Factuur", "Advertentie", "Verwijderen"];
+const ROWS_PER_STEP = 70;
 
 function matchesSearch(stove: Stove, query: string) {
   if (!query) return true;
@@ -51,6 +53,14 @@ export default function StoveTable({ stoves, view }: { stoves: Stove[]; view: St
     stovesInView.filter((stove) => kindOf(stove) === kind && matchesSearch(stove, query)),
     sort,
   );
+  // A large stock renders in steps: more rows appear while scrolling. Another tab, search or sort
+  // starts again with the first rows.
+  const rowsKey = `${view}|${kind}|${query}|${sort.key}|${sort.direction}`;
+  const [rowLimitState, setRowLimit] = useState({ key: rowsKey, limit: ROWS_PER_STEP });
+  const rowLimit = rowLimitState.key === rowsKey ? rowLimitState.limit : ROWS_PER_STEP;
+  const showMoreRows = useCallback(() => setRowLimit({ key: rowsKey, limit: rowLimit + ROWS_PER_STEP }), [rowsKey, rowLimit]);
+  const shownRows = visible.slice(0, rowLimit);
+
   const otherView: StockView = view === "sold" ? "available" : "sold";
   const otherMatches = query && kind !== "order"
     ? stoves.filter((stove) => kindOf(stove) === kind && inView(stove, otherView) && matchesSearch(stove, query)).length
@@ -135,7 +145,7 @@ export default function StoveTable({ stoves, view }: { stoves: Stove[]; view: St
               </tr>
             </thead>
             <tbody>
-              {visible.map((stove) => <StoveRow key={stove.number} stove={stove} brands={brands} />)}
+              {shownRows.map((stove) => <StoveRow key={stove.number} stove={stove} brands={brands} />)}
             </tbody>
             <tfoot>
               <tr>
@@ -145,6 +155,9 @@ export default function StoveTable({ stoves, view }: { stoves: Stove[]; view: St
               </tr>
             </tfoot>
           </table>
+          {shownRows.length < visible.length && (
+            <ShowMoreRows shown={shownRows.length} total={visible.length} onShowMore={showMoreRows} />
+          )}
         </div>
       )}
     </section>

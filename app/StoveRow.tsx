@@ -34,7 +34,7 @@ export default function StoveRow({ stove, brands }: { stove: Stove; brands: stri
   return (
     <tr className={rowClass || undefined}>
       <td data-label="Nr." className="cell-number">{stove.number}</td>
-      <td data-label="Foto's" className="cell-photo"><PhotoCell stoveNumber={stove.number} photos={stove.photos} /></td>
+      <td data-label="Foto's" className="cell-photo"><PhotoCell stoveNumber={stove.number} mainPhoto={stove.mainPhoto} photoCount={stove.photoCount} /></td>
       <td data-label="Merk" className="cell-brand">
         {stove.brand}
         {stove.shopName && <span className="cell-shop-name muted">{stove.shopName}</span>}

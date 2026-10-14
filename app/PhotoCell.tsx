@@ -3,11 +3,14 @@
 import { useState } from "react";
 import type { StovePhoto } from "../lib/stoves";
 import PhotoViewer from "./PhotoViewer";
+import { useStovePhotos } from "./useStovePhotos";
 
-// The inventory shows only the main photo; photos are managed in the edit dialog.
-export default function PhotoCell({ stoveNumber, photos }: { stoveNumber: number; photos: StovePhoto[] }) {
+type PhotoCellProps = { stoveNumber: number; mainPhoto: StovePhoto | null; photoCount: number };
+
+// The inventory shows only the main photo; the others are loaded when the viewer opens. Photos are
+// managed in the edit dialog.
+export default function PhotoCell({ stoveNumber, mainPhoto, photoCount }: PhotoCellProps) {
   const [viewIndex, setViewIndex] = useState<number | null>(null);
-  const [mainPhoto] = photos;
 
   if (!mainPhoto) {
     return (
@@ -24,14 +27,29 @@ export default function PhotoCell({ stoveNumber, photos }: { stoveNumber: number
           type="button"
           className="thumb-open"
           onClick={() => setViewIndex(0)}
-          aria-label={photos.length > 1 ? `${photos.length} foto's bekijken` : "Foto bekijken"}
+          aria-label={photoCount > 1 ? `${photoCount} foto's bekijken` : "Foto bekijken"}
         >
           <img src={mainPhoto.thumbUrl ?? mainPhoto.url} alt="" loading="lazy" decoding="async" />
         </button>
       ) : (
         <span className="thumb-missing" aria-label="Foto niet beschikbaar">?</span>
       )}
-      <PhotoViewer stoveNumber={stoveNumber} photos={photos} index={viewIndex} onIndexChange={setViewIndex} />
+      {viewIndex !== null && (
+        <AllPhotosViewer stoveNumber={stoveNumber} mainPhoto={mainPhoto} index={viewIndex} onIndexChange={setViewIndex} />
+      )}
     </span>
   );
+}
+
+type AllPhotosViewerProps = {
+  stoveNumber: number;
+  mainPhoto: StovePhoto;
+  index: number;
+  onIndexChange: (index: number | null) => void;
+};
+
+// Mounted only while open: shows the main photo straight away and the others once loaded.
+function AllPhotosViewer({ stoveNumber, mainPhoto, index, onIndexChange }: AllPhotosViewerProps) {
+  const { photos } = useStovePhotos(stoveNumber, mainPhoto);
+  return <PhotoViewer stoveNumber={stoveNumber} photos={photos} index={index} onIndexChange={onIndexChange} />;
 }
