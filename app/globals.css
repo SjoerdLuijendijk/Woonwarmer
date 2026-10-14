@@ -2055,10 +2055,11 @@ a {
     font-size: 8pt;
   }
 
+  /* Dark enough to survive printing, like Excel gridlines; 0.5pt light grey faded away on paper. */
   .print-stock th,
   .print-stock td {
     padding: 1.2mm 1.2mm;
-    border-bottom: 0.5pt solid #999;
+    border-bottom: 0.75pt solid #666;
     text-align: left;
     vertical-align: top;
   }
