@@ -119,6 +119,13 @@ invoices made before the app (298, 299, ...; migration `20261013200000_continuou
 The seller details from Admin → Bedrijfsgegevens, including the small print at the bottom of the
 invoice ("Voettekst"), are copied onto the invoice.
 
+An invoice for a stove can take the sold units from its stock in the same transaction: the units on
+the lines that came from the stove (its stove line, or its quote line), stored as
+`invoices.stock_deducted` (migration `20261014150000_invoice_lowers_stock.sql`). The dialog offers
+this with a tick box, off by default when a sale placed with "Verkocht" is still to be delivered,
+because that sale already took a unit. Made-to-order and sold-out stoves are not changed; at stock 0
+the stove is sold, unlisted and taken offline in the web shop.
+
 Invoices cannot be changed or deleted after creation; corrections need a credit invoice. PDFs are
 generated in the browser with `pdf-lib` and can be downloaded again from the inventory or from
 Facturen, which lists all invoices, including those of deleted stoves. "+ Losse factuur" on that
