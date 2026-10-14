@@ -125,7 +125,7 @@ sold in the app. A cancelled order restores the stock but does not list the stov
 
 The webhook has no signed-in user, so it uses the Supabase secret key (`SUPABASE_SECRET_KEY`, Production
 only, `lib/supabase/admin.ts`). Nothing else may use that client. Errors are logged and answered with
-2xx, because WooCommerce does not retry and disables a webhook after repeated failures.
+200, because WooCommerce does not retry and disables a webhook after repeated failures.
 
 ## Known limitations
 
