@@ -111,6 +111,22 @@ skips `/api/cron/` so the route is not redirected to the login page.
 | "Webshop" unticked | Product set to draft (never deleted, so order history stays intact). |
 | Sold out | The database unticks "Webshop", so the product becomes a draft with stock 0. |
 
+## Shop orders lower the app stock
+
+WooCommerce lowers a product's stock when an order is placed and restores it on a cancellation or
+refund. Two WooCommerce webhooks (WordPress → WooCommerce → Settings → Advanced → Webhooks), topics
+"Order created" and "Order updated", status Active, API version v3, delivery URL
+`https://bouwstream.nl/api/webhooks/woocommerce`, with the secret from `WOOCOMMERCE_WEBHOOK_SECRET`,
+call `app/api/webhooks/woocommerce/route.ts`. It checks the signature, reads the current shop stock of
+every stove in the order and copies it to the app (`lib/woocommerce/order-stock.ts`); repeated
+deliveries are harmless. Made-to-order stoves are skipped. At stock 0 the database marks the stove
+sold and unlists it, and the following sync takes the shop product offline (draft), as when a stove is
+sold in the app. A cancelled order restores the stock but does not list the stove again; tick it.
+
+The webhook has no signed-in user, so it uses the Supabase secret key (`SUPABASE_SECRET_KEY`, Production
+only, `lib/supabase/admin.ts`). Nothing else may use that client. Errors are logged and answered with
+2xx, because WooCommerce does not retry and disables a webhook after repeated failures.
+
 ## Known limitations
 
 - Two syncs for the same stove can overlap (for example two quick edits); the last one to finish
