@@ -8,7 +8,7 @@ import { stoveSpecs, type StoveSpecKey } from "../lib/stove-specs";
 import type { Stove } from "../lib/stoves";
 
 const DATE_FORMAT = new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "long", year: "numeric" });
-const PRINT_SORT = { key: "brand", direction: "asc" } as const;
+const PRINT_SORT = { key: "number", direction: "asc" } as const;
 
 // Detail columns in print order with short headings; the section already says new or used.
 const SPEC_COLUMNS: [StoveSpecKey, string][] = [
