@@ -3365,3 +3365,48 @@ a {
     grid-column: 1 / -1;
   }
 }
+
+/* Concept invoices */
+
+.draft-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--track);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* The fields of an invoice in its dialog; disabled once the invoice is sent. */
+.invoice-fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.invoice-fieldset:disabled input,
+.invoice-fieldset:disabled select {
+  background: var(--background);
+  color: var(--ink);
+}
+
+.invoice-fieldset:disabled .line-actions,
+.invoice-fieldset:disabled .line-remove {
+  display: none;
+}
+
+.invoice-final-note {
+  max-width: none;
+  margin: 0;
+  text-align: left;
+}
+
+.danger-text {
+  margin-right: auto;
+  color: var(--sold);
+}

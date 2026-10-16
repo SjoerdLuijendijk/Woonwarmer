@@ -96,6 +96,14 @@ Branch: `feature/edit-invoices`
   the place of an untouched empty one (invoices and quotes). The stove and article pick list has a
   search box (every word must match the group or line).
 
+- Same branch: invoices start as a concept (no number, editable, deletable) until they are made final
+  ("Definitief maken" = marked sent): then they get the next number, today's date and the current
+  seller details, the stove's units leave the stock (the tick box moved to that step), and they can no
+  longer change (`save_draft_invoice`, `finalize_invoice`, `delete_draft_invoice`; `update_invoice` now
+  refuses every invoice). Existing invoices count as sent. The list shows concepts first with a
+  "Concept" label, a Concepten filter, and leaves them out of the amount still to be received.
+  Decision (user): a sent invoice is final; this replaces this morning's "still editable" choice.
+
 ## Open items
 - Editable invoices: not checked in the browser by me after the production release.
 - Check the 16 web shop invoice numbers that were not imported (run the import again from
@@ -118,6 +126,7 @@ Branch: `feature/edit-invoices`
   Protection, invoice amount format "€ -100,00".
 
 ## Manual steps and migrations
+- `20261017090000_draft_invoices.sql`: to be applied by the user before this branch is released.
 - `20261016230000_invoice_payments_and_shop_invoices.sql`: applied by the user and checked with a
   verification query.
 - `20261016210000_invoice_line_sources.sql`: applied by the user and verified (both columns, both

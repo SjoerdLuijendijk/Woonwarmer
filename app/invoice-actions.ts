@@ -78,81 +78,94 @@ export async function getLineImageUrls(sources: unknown): Promise<ActionResult<{
   return { ok: true, urls: await lineImageUrls(supabase, clean) };
 }
 
-// stoveNumber null: a separate invoice that is not about a stove. stockDeduction: the units of the stove
-// this invoice takes from its stock, in the same transaction as the invoice.
-export async function createInvoice(
+function companyMissing(message: string) {
+  return message.includes("company settings missing")
+    ? ({ ok: false, error: "Vul eerst de bedrijfsgegevens in via het menu rechtsboven → Bedrijfsgegevens." } as const)
+    : null;
+}
+
+// Saves a concept invoice: a new one (invoiceId null) or the changed customer and lines of an existing
+// concept. stoveNumber null: a separate invoice that is not about a stove. A concept has no number yet.
+export async function saveDraftInvoice(
+  invoiceId: number | null,
   stoveNumber: number | null,
-  input: { customer: unknown; lines: unknown; stockDeduction: unknown },
-): Promise<ActionResult<{ invoice: Invoice }>> {
+  input: { customer: unknown; lines: unknown },
+): Promise<ActionResult<{ id: number; invoice: Invoice }>> {
+  if (invoiceId !== null && !isPositiveId(invoiceId)) return { ok: false, error: "Onbekende factuur." };
   if (stoveNumber !== null && !isPositiveId(stoveNumber)) return { ok: false, error: "Onbekende kachel." };
   const parsed = parseInvoiceInput(input);
   if (!parsed.ok) return parsed;
-  const stockDeduction = parseStockDeduction(input.stockDeduction, stoveNumber);
-  if (stockDeduction === null) return { ok: false, error: "Het aantal om van de voorraad af te halen klopt niet." };
 
   const { supabase, isMember } = await requireTeamMember();
   if (!isMember) return NO_ACCESS;
 
-  const { data, error } = await supabase
-    .rpc("create_invoice", {
-      p_stove_number: stoveNumber,
-      p_customer: parsed.value.customer,
-      p_lines: parsed.value.lines,
-      p_stock_deduction: stockDeduction,
-    })
-    .single<{ id: number; invoice_number: string }>();
-  if (error) {
-    // Codes only; the payload contains customer data.
-    console.error("Creating invoice failed", { code: error.code });
-    if (error.message.includes("company settings missing")) {
-      return { ok: false, error: "Vul eerst de bedrijfsgegevens in via het menu rechtsboven → Bedrijfsgegevens." };
-    }
-    if (error.code === CHECK_VIOLATION) {
-      return { ok: false, error: "Er staan minder kachels op voorraad dan deze factuur afboekt. De factuur is niet gemaakt; ververs de pagina en controleer de voorraad." };
-    }
-    if (error.message.includes("stove keeps no stock")) {
-      return { ok: false, error: "Deze kachel is op bestelling en heeft geen voorraad. Zet het vinkje voor de voorraad uit." };
-    }
-    return FAILED;
-  }
-
-  // The stock changed, which the web shop shows (a sold-out stove goes offline).
-  if (stockDeduction > 0 && stoveNumber !== null) after(() => syncStoveToShop(supabase, stoveNumber));
-  const invoice = await getInvoice(supabase, data.id);
-  if (!invoice) return FAILED;
-  revalidatePath("/");
-  return { ok: true, invoice };
-}
-
-// Corrects the customer and lines of an existing invoice; number, date, seller and stock stay as they were.
-export async function updateInvoice(
-  invoiceId: number,
-  input: { customer: unknown; lines: unknown },
-): Promise<ActionResult<{ invoice: Invoice }>> {
-  if (!isPositiveId(invoiceId)) return { ok: false, error: "Onbekende factuur." };
-  const parsed = parseInvoiceInput(input);
-  if (!parsed.ok) return parsed;
-
-  const { supabase, isMember } = await requireTeamMember();
-  if (!isMember) return NO_ACCESS;
-
-  const { error } = await supabase.rpc("update_invoice", {
+  const { data, error } = await supabase.rpc("save_draft_invoice", {
     p_invoice_id: invoiceId,
+    p_stove_number: stoveNumber,
     p_customer: parsed.value.customer,
     p_lines: parsed.value.lines,
   });
   if (error) {
     // Codes only; the payload contains customer data.
-    console.error("Updating invoice failed", { code: error.code });
-    if (error.message.includes("unknown invoice")) return { ok: false, error: "Factuur niet gevonden." };
-    if (error.message.includes("web shop invoice")) return { ok: false, error: "Een webshopfactuur kan niet worden gewijzigd." };
-    return FAILED;
+    console.error("Saving draft invoice failed", { code: error.code });
+    if (error.message.includes("not a draft")) return { ok: false, error: "Deze factuur is al verstuurd en kan niet meer worden gewijzigd." };
+    return companyMissing(error.message) ?? FAILED;
+  }
+  const id = data as number;
+  const invoice = await getInvoice(supabase, id);
+  if (!invoice) return FAILED;
+  revalidatePath("/");
+  return { ok: true, id, invoice };
+}
+
+// Marks a concept sent: it gets the next number and today's date and can no longer change.
+// stockDeduction: the units of its stove that leave the stock, in the same transaction.
+export async function finalizeInvoice(invoiceId: number, stockDeduction: unknown): Promise<ActionResult<{ invoice: Invoice }>> {
+  if (!isPositiveId(invoiceId)) return { ok: false, error: "Onbekende factuur." };
+  const { supabase, isMember } = await requireTeamMember();
+  if (!isMember) return NO_ACCESS;
+
+  const { data: draft, error: findError } = await supabase.from("invoices").select("stove_number").eq("id", invoiceId).maybeSingle();
+  if (findError) return FAILED;
+  if (!draft) return { ok: false, error: "Factuur niet gevonden." };
+  const deduction = parseStockDeduction(stockDeduction, draft.stove_number);
+  if (deduction === null) return { ok: false, error: "Het aantal om van de voorraad af te halen klopt niet." };
+
+  const { error } = await supabase.rpc("finalize_invoice", { p_invoice_id: invoiceId, p_stock_deduction: deduction });
+  if (error) {
+    console.error("Finalizing invoice failed", { code: error.code });
+    if (error.message.includes("not a draft")) return { ok: false, error: "Deze factuur is al verstuurd." };
+    if (error.code === CHECK_VIOLATION) {
+      return { ok: false, error: "Er staan minder kachels op voorraad dan deze factuur afboekt. De factuur is nog een concept; ververs de pagina en controleer de voorraad." };
+    }
+    if (error.message.includes("stove keeps no stock")) {
+      return { ok: false, error: "Deze kachel is op bestelling en heeft geen voorraad. Zet het vinkje voor de voorraad uit." };
+    }
+    return companyMissing(error.message) ?? FAILED;
   }
 
+  // The stock changed, which the web shop shows (a sold-out stove goes offline).
+  if (deduction > 0 && draft.stove_number !== null) {
+    const stoveNumber = draft.stove_number as number;
+    after(() => syncStoveToShop(supabase, stoveNumber));
+  }
   const invoice = await getInvoice(supabase, invoiceId);
   if (!invoice) return FAILED;
   revalidatePath("/");
   return { ok: true, invoice };
+}
+
+export async function deleteDraftInvoice(invoiceId: number): Promise<ActionResult> {
+  if (!isPositiveId(invoiceId)) return { ok: false, error: "Onbekende factuur." };
+  const { supabase, isMember } = await requireTeamMember();
+  if (!isMember) return NO_ACCESS;
+  const { error } = await supabase.rpc("delete_draft_invoice", { p_invoice_id: invoiceId });
+  if (error) {
+    if (error.message.includes("not a draft")) return { ok: false, error: "Een verstuurde factuur kan niet worden verwijderd." };
+    return FAILED;
+  }
+  revalidatePath("/");
+  return { ok: true };
 }
 
 export async function getInvoiceForPdf(invoiceId: number): Promise<ActionResult<{ invoice: Invoice }>> {
