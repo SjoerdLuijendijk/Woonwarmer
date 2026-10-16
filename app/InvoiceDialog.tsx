@@ -179,7 +179,16 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
           + Losse factuur
         </button>
       )}
-      <dialog ref={dialogRef} className="invoice-dialog" aria-labelledby={titleId} onClose={handleClose}>
+      <dialog
+        ref={dialogRef}
+        className="invoice-dialog"
+        aria-labelledby={titleId}
+        // React passes the close event of the nested pick list ("Klaar") on to this dialog; only react
+        // to this dialog closing itself, or the preview stops.
+        onClose={(event) => {
+          if (event.target === event.currentTarget) handleClose();
+        }}
+      >
         <div className="invoice-dialog-header">
           <div>
             <h2 id={titleId}>{stove ? `Factuur kachel ${stove.number}` : loadPrefill ? "Factuur van offerte" : "Losse factuur"}</h2>
