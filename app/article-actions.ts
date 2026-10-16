@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { MAX_ARTICLE_IMAGE_BYTES, storeArticleImage } from "../lib/article-images";
 import { requireTeamMember } from "../lib/auth";
 import { ARTICLE_COLUMNS, MAX_CSV_BYTES, MAX_MARKUP_PCT, parseArticle, readArticleCsv, toArticle, toArticleRow, type ArticleInput, type ArticleRow, type RawArticle } from "../lib/articles";
 import type { ActionResult } from "./actions";
@@ -41,6 +42,36 @@ export async function saveArticleMarkup(value: unknown): Promise<ActionResult> {
     return FAILED;
   }
   revalidatePath("/");
+  return { ok: true };
+}
+
+// Sets the photo of the article with this SKU (Artikelen → Afbeeldingen importeren: the file is
+// named after the SKU). Articles that share a photo share one stored file.
+export async function importArticleImage(formData: FormData): Promise<ActionResult> {
+  const sku = formData.get("sku");
+  const file = formData.get("file");
+  if (typeof sku !== "string" || sku.trim().length === 0 || sku.length > 100) return { ok: false, error: "Onbekend artikelnummer." };
+  if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Geen afbeelding." };
+  if (file.size > MAX_ARTICLE_IMAGE_BYTES) return { ok: false, error: "De afbeelding is groter dan 5 MB." };
+
+  const { supabase, isMember } = await requireTeamMember();
+  if (!isMember) return NO_ACCESS;
+
+  const { data: article, error: findError } = await supabase.from("articles").select("id").eq("sku", sku.trim()).maybeSingle();
+  if (findError) return FAILED;
+  if (!article) return { ok: false, error: `Geen artikel met nummer ${sku.trim()}.` };
+
+  let imageUrl: string;
+  try {
+    imageUrl = await storeArticleImage(supabase, new Uint8Array(await file.arrayBuffer()));
+  } catch (error) {
+    // sharp rejects files that are not images; storage errors carry no personal data.
+    console.error("Storing article image failed", { message: error instanceof Error ? error.message : "unknown" });
+    return { ok: false, error: "Dit bestand kon niet als afbeelding worden opgeslagen." };
+  }
+
+  const { error } = await supabase.from("articles").update({ image_url: imageUrl, updated_at: new Date().toISOString() }).eq("id", article.id);
+  if (error) return FAILED;
   return { ok: true };
 }
 
