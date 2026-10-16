@@ -145,6 +145,7 @@ export async function updateInvoice(
     // Codes only; the payload contains customer data.
     console.error("Updating invoice failed", { code: error.code });
     if (error.message.includes("unknown invoice")) return { ok: false, error: "Factuur niet gevonden." };
+    if (error.message.includes("web shop invoice")) return { ok: false, error: "Een webshopfactuur kan niet worden gewijzigd." };
     return FAILED;
   }
 
