@@ -23,9 +23,14 @@ export type Article = {
   ean: string | null;
   imageUrl: string | null;
   supplier: string | null;
+  /** Purchase price plus the markup from Artikelen; used when the article has no sale price of its own. */
+  markupSalePriceExCents: number | null;
 };
 
-export type ArticleInput = Omit<Article, "id">;
+export type ArticleInput = Omit<Article, "id" | "markupSalePriceExCents">;
+
+export const DEFAULT_MARKUP_PCT = 40;
+export const MAX_MARKUP_PCT = 1000;
 
 export const ARTICLE_COLUMNS =
   "id, sku, name, category, brand, diameter_mm, length_mm, color, material, wall_type, unit, purchase_price_ex_cents, sale_price_ex_cents, vat_rate, stock_quantity, ean, image_url, supplier";
@@ -71,7 +76,18 @@ export function toArticle(row: ArticleRow): Article {
     ean: row.ean,
     imageUrl: row.image_url,
     supplier: row.supplier,
+    markupSalePriceExCents: null,
   };
+}
+
+/** The sale price excluding VAT that the markup gives a purchase price. */
+export function markupPriceExCents(purchasePriceExCents: number | null, markupPct: number) {
+  return purchasePriceExCents === null ? null : Math.round((purchasePriceExCents * (100 + markupPct)) / 100);
+}
+
+/** The article's own sale price excluding VAT, otherwise the one from the markup. */
+export function salePriceExCents(article: Pick<Article, "salePriceExCents"> & Partial<Pick<Article, "markupSalePriceExCents">>) {
+  return article.salePriceExCents ?? article.markupSalePriceExCents ?? null;
 }
 
 export function toArticleRow(article: ArticleInput) {
@@ -97,8 +113,9 @@ export function toArticleRow(article: ArticleInput) {
 }
 
 /** The sale price including VAT, for quote and invoice lines. */
-export function salePriceInclCents(article: Pick<Article, "salePriceExCents" | "vatRate">) {
-  return article.salePriceExCents === null ? null : Math.round((article.salePriceExCents * (100 + article.vatRate)) / 100);
+export function salePriceInclCents(article: Pick<Article, "salePriceExCents" | "vatRate"> & Partial<Pick<Article, "markupSalePriceExCents">>) {
+  const ex = salePriceExCents(article);
+  return ex === null ? null : Math.round((ex * (100 + article.vatRate)) / 100);
 }
 
 /** "Dubbelwandige pijp zwart Ø150 mm, 500 mm" */

@@ -1,12 +1,13 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { compareArticles, groupArticles, salePriceInclCents, type Article } from "../lib/articles";
+import { compareArticles, groupArticles, salePriceExCents, salePriceInclCents, type Article } from "../lib/articles";
 import { formatPrice } from "../lib/price";
 import { onRowClick } from "../lib/row-click";
 import { deleteArticle, deleteArticles } from "./article-actions";
 import ArticleDialog from "./ArticleDialog";
 import ArticleImport from "./ArticleImport";
+import ArticleMarkupForm from "./ArticleMarkupForm";
 import { useDialog } from "./DialogProvider";
 
 const COLUMN_COUNT = 8;
@@ -23,8 +24,8 @@ const money = (cents: number | null) => (cents === null ? "—" : formatPrice(ce
 
 // Settings → Artikelen: the parts used on quotes, grouped per category in the stock table layout.
 // Groups start collapsed; a search opens the groups with matches. Checkboxes per row and per group
-// select articles to delete together.
-export default function ArticleList({ articles }: { articles: Article[] }) {
+// select articles to delete together. Articles without a sale price show the price from the markup.
+export default function ArticleList({ articles, markupPct }: { articles: Article[]; markupPct: number }) {
   const [search, setSearch] = useState("");
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
   const [checkedIds, setCheckedIds] = useState<Set<number>>(new Set());
@@ -98,6 +99,7 @@ export default function ArticleList({ articles }: { articles: Article[] }) {
             <button type="button" className="sale-button" onClick={() => setEditing({ article: null })}>+ Nieuw artikel</button>
           </div>
         </div>
+        <ArticleMarkupForm markupPct={markupPct} />
         <input
           className="search-input"
           type="search"
@@ -196,7 +198,13 @@ export default function ArticleList({ articles }: { articles: Article[] }) {
                         <td data-label="Ø mm" className="cell-numeric">{article.diameterMm?.replace(">", " → ") ?? "—"}</td>
                         <td data-label="Lengte mm" className="cell-numeric">{article.lengthMm ?? "—"}</td>
                         <td data-label="Eenheid">{article.unit ?? "—"}</td>
-                        <td data-label="Prijs excl." className="cell-numeric cell-nowrap">{money(article.salePriceExCents)}</td>
+                        <td data-label="Prijs excl." className="cell-numeric cell-nowrap">
+                          {article.salePriceExCents === null && article.markupSalePriceExCents !== null ? (
+                            <span className="muted" title={`Inkoop + ${String(markupPct).replace(".", ",")}%`}>{money(salePriceExCents(article))}</span>
+                          ) : (
+                            money(article.salePriceExCents)
+                          )}
+                        </td>
                         <td data-label="Prijs incl." className="cell-numeric cell-nowrap">{money(salePriceInclCents(article))}</td>
                         <td className="cell-actions">
                           <button type="button" className="icon-button icon-button--danger" onClick={() => remove(article)} title="Verwijderen" aria-label={`${article.name} verwijderen`}>
@@ -214,7 +222,7 @@ export default function ArticleList({ articles }: { articles: Article[] }) {
         </div>
       )}
 
-      {editing && <ArticleDialog article={editing.article} categories={categories} onClose={() => setEditing(null)} />}
+      {editing && <ArticleDialog article={editing.article} categories={categories} markupPct={markupPct} onClose={() => setEditing(null)} />}
     </section>
   );
 }

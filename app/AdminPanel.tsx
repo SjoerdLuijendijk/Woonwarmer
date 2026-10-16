@@ -7,7 +7,7 @@ import AdPromptForm from "./AdPromptForm";
 import CatalogImport from "./CatalogImport";
 import ShopResync from "./ShopResync";
 import CompanySettingsForm from "./CompanySettingsForm";
-import { listArticles } from "../lib/article-queries";
+import { getArticleMarkup, listArticles } from "../lib/article-queries";
 import { listQuotes } from "../lib/quote-queries";
 import ArticleList from "./ArticleList";
 import QuoteList from "./QuoteList";
@@ -16,7 +16,10 @@ import InvoiceList from "./InvoiceList";
 
 // One management page, opened from the account menu.
 export default async function AdminPanel({ supabase, section }: { supabase: SupabaseClient; section: AdminSection }) {
-  if (section === "artikelen") return <ArticleList articles={await listArticles(supabase)} />;
+  if (section === "artikelen") {
+    const [articles, markupPct] = await Promise.all([listArticles(supabase), getArticleMarkup(supabase)]);
+    return <ArticleList articles={articles} markupPct={markupPct} />;
+  }
   if (section === "offertes") return <QuoteList quotes={await listQuotes(supabase)} />;
   // The invoices are a wide table, laid out like the stock page.
   if (section === "facturen") {
