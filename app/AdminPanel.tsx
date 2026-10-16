@@ -4,6 +4,7 @@ import { ADMIN_SECTIONS, type AdminSection } from "../lib/admin-sections";
 import { getCompany, listInvoices } from "../lib/invoice-queries";
 import { getAdPrompt } from "../lib/marketplace-ad-store";
 import AdPromptForm from "./AdPromptForm";
+import ArticleMarkupForm from "./ArticleMarkupForm";
 import CatalogImport from "./CatalogImport";
 import ShopResync from "./ShopResync";
 import CompanySettingsForm from "./CompanySettingsForm";
@@ -40,6 +41,8 @@ export default async function AdminPanel({ supabase, section }: { supabase: Supa
       <h1 id="admin-title">{ADMIN_SECTIONS.find(({ key }) => key === section)?.label}</h1>
       {section === "advertentie" ? (
         <AdPromptForm prompt={(await getAdPrompt(supabase)) ?? DEFAULT_AD_PROMPT} />
+      ) : section === "opslag" ? (
+        <ArticleMarkupForm markupPct={await getArticleMarkup(supabase)} />
       ) : section === "catalogus" ? (
         <>
           <CatalogImport />

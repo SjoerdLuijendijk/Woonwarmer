@@ -3053,49 +3053,22 @@ a {
   margin-right: auto;
 }
 
-/* Artikelen → "Opslag op inkoopprijs" */
-.markup-form {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 10px;
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--paper);
-  font-size: 14px;
-}
-
-.markup-form label {
-  font-weight: 600;
-}
-
+/* Instellingen → "Opslag losse artikelen" */
 .markup-input {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  font-weight: 600;
 }
 
 .markup-input input {
-  width: 72px;
-  height: 36px;
-  padding: 4px 8px;
+  width: 96px;
+  height: var(--control-height);
+  padding: 6px 10px;
   border: 1px solid var(--field-border);
   border-radius: 8px;
   font-size: 15px;
   text-align: right;
-}
-
-.markup-hint {
-  flex: 1 1 260px;
-  font-size: 13px;
-}
-
-.markup-form .field-success,
-.markup-form .field-error {
-  margin: 0;
-  font-size: 13px;
 }
 
 @media (max-width: 719px) {

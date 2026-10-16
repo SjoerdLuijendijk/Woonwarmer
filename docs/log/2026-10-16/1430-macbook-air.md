@@ -55,6 +55,9 @@ Branch: `feature/edit-invoices`
   that shows the article list under the stock title; every tab has its own icon and colour
   (`StockTabs`, `lib/stock-tabs.ts`). Tabs are two by two on a phone. Counts come from head-count
   queries (`countArticles`, `countStovesByKind`) so neither view loads the other's rows.
+- Released the articles tab. Branch `feature/markup-in-settings`: the markup moved from the article
+  list to its own settings page, Instellingen → "Opslag losse artikelen" (?tab=admin&sectie=opslag);
+  it applies to all separate articles.
 
 ## Decisions
 - User: invoices are not sent from the app yet, so they stay editable with the same number (no credit
