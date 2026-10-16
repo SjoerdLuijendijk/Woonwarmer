@@ -51,6 +51,10 @@ Branch: `feature/edit-invoices`
 - Branch `fix/article-image-slash-sku` (released): a "/" cannot be in a file name, so the image import
   also matches "0502_31001" to SKU "0502/31001" when no article has the name exactly.
 - Deleted the merged branches of today locally and on GitHub.
+- Branch `feature/articles-tab-in-stock`: Aanbod has a fourth tab "Losse artikelen" (?soort=artikelen)
+  that shows the article list under the stock title; every tab has its own icon and colour
+  (`StockTabs`, `lib/stock-tabs.ts`). Tabs are two by two on a phone. Counts come from head-count
+  queries (`countArticles`, `countStovesByKind`) so neither view loads the other's rows.
 
 ## Decisions
 - User: invoices are not sent from the app yet, so they stay editable with the same number (no credit
