@@ -5,13 +5,13 @@ import { useEffect, useId, useMemo, useRef, useState, useTransition } from "reac
 import { downloadFile } from "../lib/download-file";
 import type { Article } from "../lib/articles";
 import { invoiceTotals, type Company, type Invoice } from "../lib/invoice";
-import { EMPTY_CUSTOMER, emptyLine, invoiceStoveNumber, stoveLine, stoveUnits, todayIsoDate, toCustomer, toInvoiceLines, type DraftCustomer, type DraftLine } from "../lib/invoice-draft";
+import { addDraftLine, EMPTY_CUSTOMER, invoiceStoveNumber, stoveLine, stoveUnits, todayIsoDate, toCustomer, toInvoiceLines, type DraftCustomer, type DraftLine } from "../lib/invoice-draft";
 import type { InvoiceStock } from "../lib/invoice-queries";
 import type { QuoteStoveOption } from "../lib/quote-queries";
 import type { Stove } from "../lib/stoves";
 import CustomerFields from "./CustomerFields";
 import { useDialog } from "./DialogProvider";
-import { createInvoice, getInvoiceSources, getStoveStockForInvoice } from "./invoice-actions";
+import { finalizeInvoice, getInvoiceSources, getStoveStockForInvoice, saveDraftInvoice } from "./invoice-actions";
 import InvoiceLinesEditor from "./InvoiceLinesEditor";
 import InvoiceStockOption, { stockDeduction } from "./InvoiceStockOption";
 import InvoiceTotalsSummary from "./InvoiceTotalsSummary";
@@ -65,7 +65,8 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
     const prefill = loadPrefill ? await loadPrefill() : null;
     if (loadPrefill && !prefill) return;
     setCustomer(prefill?.customer ?? EMPTY_CUSTOMER);
-    setLines(prefill?.lines ?? [stove ? stoveLine(stove) : emptyLine()]);
+    // A separate invoice starts without lines: they are added with "＋ Nieuwe regel".
+    setLines(prefill?.lines ?? (stove ? [stoveLine(stove)] : []));
     setCreated(null);
     setError(null);
     setShowLineErrors(false);
@@ -131,14 +132,37 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
     downloadFile(bytes, fileName);
   }
 
-  async function handleCreate(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  // Checks the lines before saving; returns false (and shows why) when something is missing.
+  function linesComplete() {
     setError(null);
+    if (lines.length === 0) {
+      setError("Voeg minstens één regel toe met ＋ Nieuwe regel.");
+      return false;
+    }
     if (invalid.length > 0) {
       setShowLineErrors(true);
       setError(`Regel ${invalid[0] + 1} is niet compleet: vul omschrijving, aantal en prijs in.`);
-      return;
+      return false;
     }
+    return true;
+  }
+
+  const draftInput = () => ({ customer: toCustomer(customer), lines: valid });
+
+  // "Concept opslaan": saved without a number; it can still change under Facturen.
+  function handleSaveDraft() {
+    if (!linesComplete()) return;
+    startTransition(async () => {
+      const result = await saveDraftInvoice(null, stoveNumber, draftInput());
+      if (!result.ok) return setError(result.error);
+      setCreated(result.invoice);
+    });
+  }
+
+  // "Definitief maken": saved as a concept and at once marked sent, which gives it its number.
+  async function handleFinalize(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!linesComplete()) return;
     if (stock && deduction > stock.quantity) {
       setError(`Er staan maar ${stock.quantity} van kachel ${stoveNumber} op voorraad.`);
       return;
@@ -146,15 +170,17 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
     const stockNote = deduction > 0 ? ` Kachel ${stoveNumber} gaat ${deduction} keer van de voorraad.` : "";
     const confirmed = await confirm({
       title: "Factuur definitief maken?",
-      message: `De factuur krijgt een factuurnummer en de datum van vandaag. Klant en regels kun je daarna nog wijzigen in de lijst Facturen.${stockNote}`,
-      confirmLabel: "Factuur maken",
+      message: `De factuur krijgt een factuurnummer en de datum van vandaag en staat daarna op verstuurd. Hij kan dan niet meer worden gewijzigd.${stockNote}`,
+      confirmLabel: "Definitief maken",
     });
     if (!confirmed) return;
 
     startTransition(async () => {
-      const result = await createInvoice(stoveNumber, { customer: toCustomer(customer), lines: valid, stockDeduction: deduction });
+      const saved = await saveDraftInvoice(null, stoveNumber, draftInput());
+      if (!saved.ok) return setError(saved.error);
+      const result = await finalizeInvoice(saved.id, deduction);
       if (!result.ok) {
-        setError(result.error);
+        setError(`${result.error} De factuur staat als concept onder Facturen.`);
         return;
       }
       setCreated(result.invoice);
@@ -202,10 +228,21 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
 
         {created ? (
           <div className="invoice-created" role="status">
-            <p className="stove-number-big">{created.number}</p>
-            <p>De factuur is gemaakt en gedownload als PDF.</p>
+            {created.number ? (
+              <>
+                <p className="stove-number-big">{created.number}</p>
+                <p>De factuur is definitief, staat op verstuurd en is gedownload als PDF.</p>
+              </>
+            ) : (
+              <>
+                <p className="stove-number-big">Concept</p>
+                <p>Het concept staat onder Facturen. Daar kun je het nog wijzigen en definitief maken.</p>
+              </>
+            )}
             <div className="button-row">
-              <button type="button" className="secondary-button" onClick={() => download(created)}>PDF opnieuw downloaden</button>
+              <button type="button" className="secondary-button" onClick={() => download(created)}>
+                {created.number ? "PDF opnieuw downloaden" : "Concept-PDF downloaden"}
+              </button>
               <button type="button" className="primary-button" onClick={() => dialogRef.current?.close()}>Sluiten</button>
             </div>
           </div>
@@ -216,7 +253,7 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
           </div>
         ) : (
           <div className="invoice-layout">
-            <form className="invoice-form" onSubmit={handleCreate}>
+            <form className="invoice-form" onSubmit={handleFinalize}>
               <CustomerFields customer={customer} onChange={setCustomer} />
               <InvoiceLinesEditor
                 hourlyRateExCents={company ? (company.hourly_rate_ex_cents ?? null) : undefined}
@@ -225,7 +262,7 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
                 onChange={setLines}
                 articles={articles}
                 stoves={stove ? undefined : (stoves ?? [])}
-                onPick={(line) => setLines((current) => [...current, line])}
+                onPick={(line) => setLines((current) => addDraftLine(current, line))}
               />
               <InvoiceTotalsSummary totals={totals} />
               {!stove && stoveNumber === null && lines.some((line) => line.stoveNumber != null) && (
@@ -238,8 +275,11 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
                 <div className="dialog-footer-status">
                   {error && <p className="field-error" role="alert">{error}</p>}
                 </div>
+                <button type="button" className="secondary-button" onClick={handleSaveDraft} disabled={pending || !company}>
+                  Concept opslaan
+                </button>
                 <button className="primary-button" type="submit" disabled={pending || !company}>
-                  {pending ? "Factuur maken…" : "Factuur maken (PDF)"}
+                  {pending ? "Bezig…" : "Definitief maken"}
                 </button>
               </div>
             </form>

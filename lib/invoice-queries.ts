@@ -36,7 +36,7 @@ export async function getInvoice(supabase: SupabaseClient, id: number): Promise<
   const { data, error } = await supabase
     .from("invoices")
     .select(
-      "invoice_number, issue_date, stove_number, seller, customer_name, customer_address, customer_postal_code, customer_city, customer_email, customer_phone, invoice_lines (position, description, quantity, unit_price_cents, vat_rate, margin_scheme, stove_number, article_id)",
+      "invoice_number, status, issue_date, stove_number, seller, customer_name, customer_address, customer_postal_code, customer_city, customer_email, customer_phone, invoice_lines (position, description, quantity, unit_price_cents, vat_rate, margin_scheme, stove_number, article_id)",
     )
     .eq("id", id)
     .order("position", { referencedTable: "invoice_lines", ascending: true })
@@ -47,6 +47,7 @@ export async function getInvoice(supabase: SupabaseClient, id: number): Promise<
 
   return {
     number: data.invoice_number,
+    status: data.status,
     issueDate: data.issue_date,
     stoveNumber: data.stove_number,
     seller: data.seller,
@@ -73,7 +74,10 @@ export async function getInvoice(supabase: SupabaseClient, id: number): Promise<
 
 export type InvoiceSummary = {
   id: number;
-  number: string;
+  /** Null for a concept. */
+  number: string | null;
+  /** A concept is still being written; it counts towards nothing until it is sent. */
+  draft: boolean;
   issueDate: string;
   stoveNumber: number | null;
   customerName: string;
@@ -88,7 +92,8 @@ export type InvoiceSummary = {
 
 type InvoiceListRow = {
   id: number;
-  invoice_number: string;
+  invoice_number: string | null;
+  status: "draft" | "sent";
   issue_date: string;
   stove_number: number | null;
   customer_name: string;
@@ -105,9 +110,11 @@ export async function listInvoices(supabase: SupabaseClient): Promise<InvoiceSum
     supabase
       .from("invoices")
       .select(
-        "id, invoice_number, issue_date, stove_number, customer_name, source, paid_at, invoice_lines (quantity, unit_price_cents), invoice_payments (id, paid_on, amount_cents, method, note)",
+        "id, invoice_number, status, issue_date, stove_number, customer_name, source, paid_at, invoice_lines (quantity, unit_price_cents), invoice_payments (id, paid_on, amount_cents, method, note)",
       )
-      .order("sequence_number", { ascending: false })
+      // Concepts (no number yet) first, then the highest number.
+      .order("sequence_number", { ascending: false, nullsFirst: true })
+      .order("id", { ascending: false })
       .order("paid_on", { referencedTable: "invoice_payments", ascending: true })
       .range(from, to)
       .overrideTypes<InvoiceListRow[], { merge: false }>(),
@@ -119,6 +126,7 @@ export async function listInvoices(supabase: SupabaseClient): Promise<InvoiceSum
     return {
       id: invoice.id,
       number: invoice.invoice_number,
+      draft: invoice.status === "draft",
       issueDate: invoice.issue_date,
       stoveNumber: invoice.stove_number,
       customerName: invoice.customer_name,

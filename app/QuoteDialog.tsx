@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type { Article } from "../lib/articles";
 import { downloadFile } from "../lib/download-file";
-import { invoiceTotals, MAX_INVOICE_LINES, MAX_QUANTITY, type Company } from "../lib/invoice";
-import { draftLineVat, EMPTY_CUSTOMER, toInvoiceLines, type DraftCustomer, type DraftLine } from "../lib/invoice-draft";
+import { invoiceTotals, MAX_QUANTITY, type Company } from "../lib/invoice";
+import { addDraftLine, draftLineVat, EMPTY_CUSTOMER, toInvoiceLines, type DraftCustomer, type DraftLine } from "../lib/invoice-draft";
 import { formatPriceInput, parsePriceToCents } from "../lib/price";
 import { DEFAULT_VALID_DAYS, MAX_NOTES_LENGTH, type Quote, type QuoteCustomer, type QuoteLine } from "../lib/quote";
 import type { QuoteStoveOption } from "../lib/quote-queries";
@@ -203,7 +203,7 @@ export default function QuoteDialog({ quote: initialQuote, onClose }: QuoteDialo
         const next = Math.min(MAX_QUANTITY, (Number.isInteger(quantity) && quantity > 0 ? quantity : 0) + 1);
         return current.map((other) => (other === same ? { ...other, quantity: String(next) } : other));
       }
-      return current.length >= MAX_INVOICE_LINES ? current : [...current, line];
+      return addDraftLine(current, line);
     });
 
   return (

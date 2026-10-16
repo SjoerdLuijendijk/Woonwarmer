@@ -12,7 +12,7 @@ export default function StoveInvoiceLinks({ invoices }: { invoices: StoveInvoice
     <span className="invoice-links" aria-busy={pending}>
       {invoices.map((invoice) => (
         <button key={invoice.id} type="button" className="invoice-link" onClick={() => download(invoice.id)} disabled={pending} title="Factuur downloaden">
-          ↓ {invoice.number}
+          ↓ {invoice.number ?? "Concept"}
         </button>
       ))}
     </span>

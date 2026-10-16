@@ -31,11 +31,7 @@ export default async function AdminPanel({ supabase, section }: { supabase: Supa
         <div className="stock-toolbar">
           <div className="stock-title-row">
             <h1 id="admin-title">Facturen</h1>
-            <div className="toolbar-actions">
-              {/* A one-off import: gone once the web shop's invoices are in the app. */}
-              {!invoices.some(({ source }) => source === "webshop") && <ShopInvoiceImport />}
-              <InvoiceDialog stove={null} />
-            </div>
+            <InvoiceDialog stove={null} />
           </div>
         </div>
         <InvoiceList invoices={invoices} />
@@ -53,6 +49,7 @@ export default async function AdminPanel({ supabase, section }: { supabase: Supa
         <>
           <CatalogImport />
           <ShopResync />
+          <ShopInvoiceImport />
         </>
       ) : (
         <CompanySettingsForm company={await getCompany(supabase)} />

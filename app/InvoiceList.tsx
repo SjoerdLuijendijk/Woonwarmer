@@ -17,7 +17,7 @@ const DATE_FORMAT = new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "s
 const money = (cents: number) => formatPrice(cents, { alwaysCents: true });
 const STATUS_TONES: Record<PaymentStatus, string> = { paid: "", partial: " status-pill--negotiating", open: " status-pill--sold" };
 
-type Filter = "all" | "open";
+type Filter = "all" | "draft" | "open";
 
 // All invoices of the app and the web shop, also those of stoves that have since been deleted, in the
 // stock table layout. A row opens an app invoice to correct it (a web shop invoice opens its payments);
@@ -32,9 +32,13 @@ export default function InvoiceList({ invoices }: { invoices: InvoiceSummary[] }
   const pending = downloading || opening;
   // Looked up on every render, so the dialog shows the payments as refreshed after a change.
   const paymentsInvoice = invoices.find(({ id }) => id === paymentsId) ?? null;
-  const unpaid = invoices.filter((invoice) => invoice.status !== "paid");
+  // Concepts are not sent yet, so nothing is owed on them.
+  const drafts = invoices.filter((invoice) => invoice.draft);
+  const unpaid = invoices.filter((invoice) => !invoice.draft && invoice.status !== "paid");
   const openCents = unpaid.reduce((sum, invoice) => sum + Math.max(0, invoice.totalCents - invoice.paidCents), 0);
-  const shown = filter === "open" ? unpaid : invoices;
+  const shown = filter === "open" ? unpaid : filter === "draft" ? drafts : invoices;
+
+  const label = (invoice: InvoiceSummary) => (invoice.number ? `Factuur ${invoice.number}` : "Conceptfactuur");
 
   function open(invoice: InvoiceSummary) {
     if (invoice.source === "webshop") return setPaymentsId(invoice.id);
@@ -55,6 +59,9 @@ export default function InvoiceList({ invoices }: { invoices: InvoiceSummary[] }
           <button type="button" className="kind-tab" aria-pressed={filter === "all"} onClick={() => setFilter("all")}>
             Alle <span>{invoices.length}</span>
           </button>
+          <button type="button" className="kind-tab" aria-pressed={filter === "draft"} onClick={() => setFilter("draft")}>
+            Concepten <span>{drafts.length}</span>
+          </button>
           <button type="button" className="kind-tab" aria-pressed={filter === "open"} onClick={() => setFilter("open")}>
             Openstaand <span>{unpaid.length}</span>
           </button>
@@ -64,7 +71,7 @@ export default function InvoiceList({ invoices }: { invoices: InvoiceSummary[] }
         </p>
       </div>
       {shown.length === 0 ? (
-        <div className="notice"><p>Alle facturen zijn betaald.</p></div>
+        <div className="notice"><p>{filter === "draft" ? "Er zijn geen concepten." : "Alle facturen zijn betaald."}</p></div>
       ) : (
         <div className="table-wrap" aria-busy={pending}>
           {editing && <InvoiceEditDialog invoiceId={editing.id} invoice={editing.invoice} onClose={() => setEditing(null)} />}
@@ -85,8 +92,8 @@ export default function InvoiceList({ invoices }: { invoices: InvoiceSummary[] }
               {shown.map((invoice) => (
                 <tr key={invoice.id} className="clickable-row" onClick={onRowClick(() => open(invoice))}>
                   <td data-label="Factuur" className="cell-number cell-nowrap">
-                    <button type="button" className="text-button" onClick={() => open(invoice)} disabled={pending} aria-label={`Factuur ${invoice.number} openen`}>
-                      {invoice.number}
+                    <button type="button" className="text-button" onClick={() => open(invoice)} disabled={pending} aria-label={`${label(invoice)} openen`}>
+                      {invoice.number ?? <span className="draft-badge">Concept</span>}
                     </button>
                     {invoice.source === "webshop" && <span className="source-badge">Webshop</span>}
                   </td>
@@ -97,19 +104,25 @@ export default function InvoiceList({ invoices }: { invoices: InvoiceSummary[] }
                   <td data-label="Kachel">{invoice.stoveNumber ?? "—"}</td>
                   <td data-label="Bedrag" className="cell-numeric cell-nowrap">{money(invoice.totalCents)}</td>
                   <td data-label="Status" className="cell-nowrap">
-                    <button
-                      type="button"
-                      className={`status-pill status-pill--compact${STATUS_TONES[invoice.status]}`}
-                      onClick={() => setPaymentsId(invoice.id)}
-                      aria-label={`Betalingen factuur ${invoice.number}: ${PAYMENT_STATUS_LABELS[invoice.status]}`}
-                    >
-                      {PAYMENT_STATUS_LABELS[invoice.status]}
-                      {invoice.status === "partial" && <span className="pill-detail"> · {money(invoice.totalCents - invoice.paidCents)} open</span>}
-                    </button>
+                    {invoice.draft ? (
+                      <button type="button" className="status-pill status-pill--compact status-pill--cancelled" onClick={() => open(invoice)} aria-label={`${label(invoice)} openen`}>
+                        Concept
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className={`status-pill status-pill--compact${STATUS_TONES[invoice.status]}`}
+                        onClick={() => setPaymentsId(invoice.id)}
+                        aria-label={`Betalingen ${label(invoice).toLowerCase()}: ${PAYMENT_STATUS_LABELS[invoice.status]}`}
+                      >
+                        {PAYMENT_STATUS_LABELS[invoice.status]}
+                        {invoice.status === "partial" && <span className="pill-detail"> · {money(invoice.totalCents - invoice.paidCents)} open</span>}
+                      </button>
+                    )}
                   </td>
                   <td className="cell-actions">
                     {invoice.source === "app" && (
-                      <button type="button" className="invoice-link" onClick={() => download(invoice.id)} disabled={pending} aria-label={`Factuur ${invoice.number} downloaden`}>
+                      <button type="button" className="invoice-link" onClick={() => download(invoice.id)} disabled={pending} aria-label={`${label(invoice)} downloaden`}>
                         ↓ PDF
                       </button>
                     )}

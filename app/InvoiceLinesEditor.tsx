@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Article } from "../lib/articles";
 import { MAX_INVOICE_LINES, MONTAGE_VAT_RATE, VAT_RATES } from "../lib/invoice";
-import { draftVatPatch, draftVatValue, emptyLine, montageLine, type DraftLine } from "../lib/invoice-draft";
+import { addDraftLine, draftVatPatch, draftVatValue, emptyLine, montageLine, type DraftLine } from "../lib/invoice-draft";
 import { formatPrice } from "../lib/price";
 import type { QuoteStoveOption } from "../lib/quote-queries";
 import AddLineMenu, { type AddLineOption } from "./AddLineMenu";
@@ -35,7 +35,7 @@ function montageDetail(hourlyRateExCents: number | null | undefined) {
 export default function InvoiceLinesEditor({ lines, invalid, onChange, articles, stoves, onPick, allowSaveAsArticle, hourlyRateExCents }: InvoiceLinesEditorProps) {
   const [browsing, setBrowsing] = useState<LineSource | null>(null);
   const full = lines.length >= MAX_INVOICE_LINES;
-  const append = (line: DraftLine) => onChange(lines.length >= MAX_INVOICE_LINES ? lines : [...lines, line]);
+  const append = (line: DraftLine) => onChange(addDraftLine(lines, line));
   const update = (key: string, patch: Partial<DraftLine>) =>
     onChange(lines.map((line) => (line.key === key ? { ...line, ...patch } : line)));
 
