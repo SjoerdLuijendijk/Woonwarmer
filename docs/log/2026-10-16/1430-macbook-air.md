@@ -105,8 +105,8 @@ Branch: `feature/edit-invoices`
   Protection, invoice amount format "€ -100,00".
 
 ## Manual steps and migrations
-- `20261016230000_invoice_payments_and_shop_invoices.sql`: to be applied by the user before
-  `feature/invoice-payments-and-shop-import` is released (the invoice list reads the new columns).
+- `20261016230000_invoice_payments_and_shop_invoices.sql`: applied by the user and checked with a
+  verification query.
 - `20261016210000_invoice_line_sources.sql`: applied by the user and verified (both columns, both
   functions store the line's stove and article).
 - `20261016190000_article_images.sql`: applied by the user and verified (bucket public, 1 MB, JPEG;
