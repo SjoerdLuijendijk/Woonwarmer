@@ -108,6 +108,8 @@ Branch: `feature/edit-invoices`
 - Editable invoices: not checked in the browser by me after the production release.
 - Check the 16 web shop invoice numbers that were not imported (run the import again from
   Instellingen → Catalogus importeren to see the reasons).
+- `create_invoice` (both versions) and `update_invoice` are no longer used by the app once the concept
+  flow is live; drop them in a later migration.
 - Other unpaged lists (stock table `getStoves`, invoices, quotes) still stop at 1,000 rows; fine for now.
 - Markup is one percentage for all articles; per category is possible later if needed.
 - HAVÉ prices and photos do not update by themselves: re-read the portal (or ask HAVÉ for their XML
