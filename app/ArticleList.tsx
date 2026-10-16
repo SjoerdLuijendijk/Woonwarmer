@@ -9,7 +9,6 @@ import ArticleDialog from "./ArticleDialog";
 import ArticleImageImport from "./ArticleImageImport";
 import ArticleImport from "./ArticleImport";
 import ArticleThumb from "./ArticleThumb";
-import ArticleMarkupForm from "./ArticleMarkupForm";
 import { useDialog } from "./DialogProvider";
 
 const COLUMN_COUNT = 8;
@@ -112,7 +111,6 @@ export default function ArticleList({ articles, markupPct, title = "Artikelen", 
           </div>
         </div>
         {tabs}
-        <ArticleMarkupForm markupPct={markupPct} />
         <input
           className="search-input"
           type="search"
