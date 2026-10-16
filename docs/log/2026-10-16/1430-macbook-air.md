@@ -128,7 +128,9 @@ Branch: `feature/edit-invoices`
   Protection, invoice amount format "€ -100,00".
 
 ## Manual steps and migrations
-- `20261017090000_draft_invoices.sql`: to be applied by the user before this branch is released.
+- `20261017090000_draft_invoices.sql`: applied by the user and verified (status and sent_at columns,
+  138 sent invoices, no concepts, the three new functions, no anon execute). A second accidental run
+  stopped at its first statement and changed nothing.
 - `20261016230000_invoice_payments_and_shop_invoices.sql`: applied by the user and checked with a
   verification query.
 - `20261016210000_invoice_line_sources.sql`: applied by the user and verified (both columns, both
