@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import type { Article } from "../lib/articles";
 import { downloadFile } from "../lib/download-file";
 import { invoiceTotals, type Customer, type Invoice } from "../lib/invoice";
-import { toCustomer, toInvoiceLines, type DraftCustomer, type DraftLine } from "../lib/invoice-draft";
+import { addDraftLine, toCustomer, toInvoiceLines, type DraftCustomer, type DraftLine } from "../lib/invoice-draft";
 import { formatPriceInput } from "../lib/price";
 import CustomerFields from "./CustomerFields";
 import { getInvoiceSources, updateInvoice } from "./invoice-actions";
@@ -140,7 +140,7 @@ export default function InvoiceEditDialog({ invoiceId, invoice: initialInvoice, 
             invalid={showLineErrors ? invalid : []}
             onChange={setLines}
             articles={articles}
-            onPick={(line) => setLines((current) => [...current, line])}
+            onPick={(line) => setLines((current) => addDraftLine(current, line))}
           />
           <InvoiceTotalsSummary totals={totals} />
           {saved.stoveNumber !== null && (

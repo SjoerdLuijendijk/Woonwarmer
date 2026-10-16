@@ -4,8 +4,9 @@ import { useState, useTransition } from "react";
 import { useDialog } from "./DialogProvider";
 import { importShopInvoices, type ShopImportReport } from "./payment-actions";
 
-// Facturen → "Webshopfacturen 2026 ophalen": a one-off import of the invoices the web shop made before
-// the app took over invoicing. Shown until they are in the app.
+// Instellingen → Catalogus importeren → "Webshopfacturen 2026 ophalen": imports the invoices the web shop
+// made before the app took over invoicing. Running it again adds nothing twice and lists, per skipped
+// invoice number, why it was left out.
 export default function ShopInvoiceImport() {
   const [report, setReport] = useState<ShopImportReport | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -28,8 +29,13 @@ export default function ShopInvoiceImport() {
   }
 
   return (
-    <>
-      <button type="button" className="secondary-button toolbar-button" onClick={handleImport} disabled={pending}>
+    <div className="catalog-import">
+      <h2>Webshopfacturen</h2>
+      <p className="muted">
+        Haalt de facturen van 2026 uit de webshop op (met hun eigen nummer), zodat alle facturen in één lijst staan. Opnieuw
+        ophalen voegt niets dubbel toe en laat zien welke nummers zijn overgeslagen en waarom.
+      </p>
+      <button type="button" className="secondary-button" onClick={handleImport} disabled={pending}>
         {pending ? "Ophalen…" : "Webshopfacturen 2026 ophalen"}
       </button>
       {(report || error) && (
@@ -62,6 +68,6 @@ export default function ShopInvoiceImport() {
           <button type="button" className="text-button" onClick={() => { setReport(null); setError(null); }}>Sluiten</button>
         </div>
       )}
-    </>
+    </div>
   );
 }

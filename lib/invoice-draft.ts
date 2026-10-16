@@ -1,5 +1,5 @@
 import { articleDescription, salePriceInclCents, type Article } from "./articles";
-import { DEFAULT_VAT_RATE, MONTAGE_VAT_RATE, MAX_QUANTITY, type Customer, type InvoiceLine, type VatRate } from "./invoice";
+import { DEFAULT_VAT_RATE, MAX_INVOICE_LINES, MONTAGE_VAT_RATE, MAX_QUANTITY, type Customer, type InvoiceLine, type VatRate } from "./invoice";
 import { formatPriceInput, parsePriceToCents } from "./price";
 import { stoveProductName } from "./stove-specs";
 import { CONDITION_LABELS, type Stove } from "./stoves";
@@ -32,6 +32,15 @@ function nextKey() {
 
 export function emptyLine(): DraftLine {
   return { key: nextKey(), description: "", quantity: "1", price: "", vatRate: DEFAULT_VAT_RATE };
+}
+
+const isUntouched = (line: DraftLine) =>
+  !line.description.trim() && !line.price.trim() && line.quantity.trim() === "1" && !line.stoveNumber && !line.articleId;
+
+/** Adds a line at the end; it takes the place of lines left empty, and stops at the maximum. */
+export function addDraftLine(lines: DraftLine[], line: DraftLine): DraftLine[] {
+  const kept = lines.filter((other) => !isUntouched(other));
+  return kept.length >= MAX_INVOICE_LINES ? kept : [...kept, line];
 }
 
 /** A used stove is sold under the margin scheme; a new or made-to-order one with 21% VAT. */

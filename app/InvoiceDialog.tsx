@@ -5,7 +5,7 @@ import { useEffect, useId, useMemo, useRef, useState, useTransition } from "reac
 import { downloadFile } from "../lib/download-file";
 import type { Article } from "../lib/articles";
 import { invoiceTotals, type Company, type Invoice } from "../lib/invoice";
-import { EMPTY_CUSTOMER, emptyLine, invoiceStoveNumber, stoveLine, stoveUnits, todayIsoDate, toCustomer, toInvoiceLines, type DraftCustomer, type DraftLine } from "../lib/invoice-draft";
+import { addDraftLine, EMPTY_CUSTOMER, invoiceStoveNumber, stoveLine, stoveUnits, todayIsoDate, toCustomer, toInvoiceLines, type DraftCustomer, type DraftLine } from "../lib/invoice-draft";
 import type { InvoiceStock } from "../lib/invoice-queries";
 import type { QuoteStoveOption } from "../lib/quote-queries";
 import type { Stove } from "../lib/stoves";
@@ -65,7 +65,8 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
     const prefill = loadPrefill ? await loadPrefill() : null;
     if (loadPrefill && !prefill) return;
     setCustomer(prefill?.customer ?? EMPTY_CUSTOMER);
-    setLines(prefill?.lines ?? [stove ? stoveLine(stove) : emptyLine()]);
+    // A separate invoice starts without lines: they are added with "＋ Nieuwe regel".
+    setLines(prefill?.lines ?? (stove ? [stoveLine(stove)] : []));
     setCreated(null);
     setError(null);
     setShowLineErrors(false);
@@ -225,7 +226,7 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
                 onChange={setLines}
                 articles={articles}
                 stoves={stove ? undefined : (stoves ?? [])}
-                onPick={(line) => setLines((current) => [...current, line])}
+                onPick={(line) => setLines((current) => addDraftLine(current, line))}
               />
               <InvoiceTotalsSummary totals={totals} />
               {!stove && stoveNumber === null && lines.some((line) => line.stoveNumber != null) && (

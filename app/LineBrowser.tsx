@@ -72,10 +72,30 @@ export default function LineBrowser({ source, stoves, articles, onPick, onClose 
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState<Set<string>>(() => new Set(groups.length === 1 ? [groups[0].key] : []));
   const [added, setAdded] = useState(0);
+  const [search, setSearch] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!dialogRef.current?.open) dialogRef.current?.showModal();
+    searchRef.current?.focus();
   }, []);
+
+  // While searching, every group with a match is open and shows only its matches; each word must
+  // occur in the group or the line ("dw150 bocht 45").
+  const words = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const searching = words.length > 0;
+  const shownGroups = searching
+    ? groups
+        .map((group) => ({
+          ...group,
+          items: group.items.filter((item) => {
+            const text = `${group.title} ${item.label}`.toLowerCase();
+            return words.every((word) => text.includes(word));
+          }),
+        }))
+        .filter((group) => group.items.length > 0)
+    : groups;
+  const matchCount = shownGroups.reduce((sum, group) => sum + group.items.length, 0);
 
   function toggle(key: string) {
     setOpen((current) => {
@@ -97,18 +117,37 @@ export default function LineBrowser({ source, stoves, articles, onPick, onClose 
         <h2 id="line-browser-title">{title}</h2>
         <button type="button" className="line-remove" onClick={() => dialogRef.current?.close()} aria-label="Sluiten">×</button>
       </div>
+      {groups.length > 0 && (
+        <div className="line-browser-search">
+          <input
+            ref={searchRef}
+            className="search-input"
+            type="search"
+            placeholder={source === "stove" ? "Zoek op nummer of merk" : "Zoek op naam, maat of soort, bijv. dw150 bocht"}
+            aria-label="Zoeken"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            // The list sits inside the invoice form: Enter must not submit it.
+            onKeyDown={(event) => {
+              if (event.key === "Enter") event.preventDefault();
+            }}
+          />
+          {searching && <span className="muted line-browser-count">{matchCount === 1 ? "1 gevonden" : `${matchCount} gevonden`}</span>}
+        </div>
+      )}
       <div className="line-browser-list">
         {groups.length === 0 && <p className="muted">Er is niets om toe te voegen.</p>}
-        {groups.map((group) => (
+        {searching && matchCount === 0 && <p className="muted">Niets gevonden voor &ldquo;{search.trim()}&rdquo;.</p>}
+        {shownGroups.map((group) => (
           <section key={group.key} className="line-browser-group">
-            <button type="button" className="line-browser-group-title" aria-expanded={open.has(group.key)} onClick={() => toggle(group.key)}>
+            <button type="button" className="line-browser-group-title" aria-expanded={searching || open.has(group.key)} onClick={() => toggle(group.key)} disabled={searching}>
               <svg aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
                 <path d="m9 6 6 6-6 6" />
               </svg>
               {group.title}
               <span className="agenda-day-count">{group.items.length}</span>
             </button>
-            {open.has(group.key) && (
+            {(searching || open.has(group.key)) && (
               <ul>
                 {group.items.map((item) => (
                   <li key={item.key}>

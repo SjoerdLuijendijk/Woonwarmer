@@ -85,8 +85,21 @@ Branch: `feature/edit-invoices`
   PDF in the app (the shop's PDF is the original). Decision (user): one-off import, invoicing
   continues in the app only; invoices can be marked paid with a button.
 
+- Released payments and ran the web shop import on production: 136 web shop invoices (numbers 148
+  to 297) next to the app's 298 and 299; 119 paid, 17 open (the shop's on-hold orders). Numbers 157,
+  158, 159, 163, 165–170, 186, 208, 242, 243, 255 and 264 were not imported; the report with the
+  reasons was lost because the button disappeared with it.
+- Branch `feature/payments-dialog-layout`: the payments dialog leads with the amount still open, a
+  green "Op betaald zetten" button, then the payments and a lighter "＋ Toevoegen" for a part payment.
+  The shop invoice import moved to Instellingen → Catalogus importeren and stays there, so running it
+  again shows why numbers were skipped. A separate invoice starts without lines, and a new line takes
+  the place of an untouched empty one (invoices and quotes). The stove and article pick list has a
+  search box (every word must match the group or line).
+
 ## Open items
 - Editable invoices: not checked in the browser by me after the production release.
+- Check the 16 web shop invoice numbers that were not imported (run the import again from
+  Instellingen → Catalogus importeren to see the reasons).
 - Other unpaged lists (stock table `getStoves`, invoices, quotes) still stop at 1,000 rows; fine for now.
 - Markup is one percentage for all articles; per category is possible later if needed.
 - HAVÉ prices and photos do not update by themselves: re-read the portal (or ask HAVÉ for their XML
