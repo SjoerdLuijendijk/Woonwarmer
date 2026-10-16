@@ -129,7 +129,7 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
     const stockNote = deduction > 0 ? ` Kachel ${stoveNumber} gaat ${deduction} keer van de voorraad.` : "";
     const confirmed = await confirm({
       title: "Factuur definitief maken?",
-      message: `De factuur krijgt een factuurnummer en kan daarna niet meer worden gewijzigd.${stockNote}`,
+      message: `De factuur krijgt een factuurnummer en de datum van vandaag. Klant en regels kun je daarna nog wijzigen in de lijst Facturen.${stockNote}`,
       confirmLabel: "Factuur maken",
     });
     if (!confirmed) return;

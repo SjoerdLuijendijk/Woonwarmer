@@ -100,6 +100,36 @@ export async function createInvoice(
   return { ok: true, invoice };
 }
 
+// Corrects the customer and lines of an existing invoice; number, date, seller and stock stay as they were.
+export async function updateInvoice(
+  invoiceId: number,
+  input: { customer: unknown; lines: unknown },
+): Promise<ActionResult<{ invoice: Invoice }>> {
+  if (!isPositiveId(invoiceId)) return { ok: false, error: "Onbekende factuur." };
+  const parsed = parseInvoiceInput(input);
+  if (!parsed.ok) return parsed;
+
+  const { supabase, isMember } = await requireTeamMember();
+  if (!isMember) return NO_ACCESS;
+
+  const { error } = await supabase.rpc("update_invoice", {
+    p_invoice_id: invoiceId,
+    p_customer: parsed.value.customer,
+    p_lines: parsed.value.lines,
+  });
+  if (error) {
+    // Codes only; the payload contains customer data.
+    console.error("Updating invoice failed", { code: error.code });
+    if (error.message.includes("unknown invoice")) return { ok: false, error: "Factuur niet gevonden." };
+    return FAILED;
+  }
+
+  const invoice = await getInvoice(supabase, invoiceId);
+  if (!invoice) return FAILED;
+  revalidatePath("/");
+  return { ok: true, invoice };
+}
+
 export async function getInvoiceForPdf(invoiceId: number): Promise<ActionResult<{ invoice: Invoice }>> {
   if (!isPositiveId(invoiceId)) return { ok: false, error: "Onbekende factuur." };
   const { supabase, isMember } = await requireTeamMember();
