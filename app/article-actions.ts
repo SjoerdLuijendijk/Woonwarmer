@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireTeamMember } from "../lib/auth";
-import { ARTICLE_COLUMNS, MAX_CSV_BYTES, parseArticle, readArticleCsv, toArticle, toArticleRow, type ArticleInput, type ArticleRow, type RawArticle } from "../lib/articles";
+import { ARTICLE_COLUMNS, MAX_CSV_BYTES, MAX_MARKUP_PCT, parseArticle, readArticleCsv, toArticle, toArticleRow, type ArticleInput, type ArticleRow, type RawArticle } from "../lib/articles";
 import type { ActionResult } from "./actions";
 
 const NO_ACCESS = { ok: false, error: "Je hebt geen toegang tot de artikelen." } as const;
@@ -20,6 +20,28 @@ function rawFromForm(formData: FormData): RawArticle {
   const raw: RawArticle = {};
   for (const [key, value] of formData.entries()) if (typeof value === "string") raw[key as keyof RawArticle] = value;
   return raw;
+}
+
+// Sets the markup on purchase prices that articles without a sale price of their own are sold at.
+export async function saveArticleMarkup(value: unknown): Promise<ActionResult> {
+  const text = typeof value === "string" ? value.trim().replace("%", "").replace(",", ".") : "";
+  const markupPct = /^\d{1,4}(\.\d{1,2})?$/.test(text) ? Number(text) : NaN;
+  if (!(markupPct >= 0 && markupPct <= MAX_MARKUP_PCT)) return { ok: false, error: `Vul een opslag in van 0 tot ${MAX_MARKUP_PCT}%, bijvoorbeeld 40 of 37,5.` };
+
+  const { supabase, isMember } = await requireTeamMember();
+  if (!isMember) return NO_ACCESS;
+
+  const { data, error } = await supabase
+    .from("article_settings")
+    .update({ markup_pct: markupPct, updated_at: new Date().toISOString() })
+    .eq("id", true)
+    .select("id");
+  if (error || data.length === 0) {
+    console.error("Saving article markup failed", { code: error?.code });
+    return FAILED;
+  }
+  revalidatePath("/");
+  return { ok: true };
 }
 
 // Adds an article (id null) or updates one.

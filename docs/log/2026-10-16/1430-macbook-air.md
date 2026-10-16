@@ -34,6 +34,11 @@ Branch: `feature/edit-invoices`
 - Branch `fix/list-beyond-1000-rows`: Supabase returns at most 1,000 rows per request, so the article
   list stopped at 1,000. `selectAllPages` (lib/all-pages.ts) reads articles and the invoice/quote stove
   list page by page.
+- Released the paging fix; the app now shows all 1,741 articles in 97 groups.
+- Branch `feature/article-markup`: Artikelen → "Opslag op inkoopprijs" (table `article_settings`,
+  default and set to 40%). Articles without a sale price of their own get purchase price × (1 + markup)
+  excl. VAT, computed when listed (`markupSalePriceExCents`), so changing the markup changes all such
+  prices at once; an article's own sale price always wins. Shown muted in the article list.
 
 ## Decisions
 - User: invoices are not sent from the app yet, so they stay editable with the same number (no credit
@@ -42,7 +47,7 @@ Branch: `feature/edit-invoices`
 ## Open items
 - Editable invoices: not checked in the browser by me after the production release.
 - Other unpaged lists (stock table `getStoves`, invoices, quotes) still stop at 1,000 rows; fine for now.
-- Articles have no sale price yet: a margin per category would save entering 1,741 prices by hand.
+- Markup is one percentage for all articles; per category is possible later if needed.
 - Article images: the portal's images only load when logged in; storing them in the app is a separate task.
 - Dialog layout: check in the real app (create invoice, edit invoice, quote), including the
   "＋ Nieuwe regel" menu inside the dialog on Safari and on a phone. Long descriptions are still cut
@@ -58,5 +63,7 @@ Branch: `feature/edit-invoices`
   Protection, invoice amount format "€ -100,00".
 
 ## Manual steps and migrations
+- `20261016170000_article_markup.sql`: to be applied by the user in the SQL Editor before
+  `feature/article-markup` is released (the article page reads the new table).
 - `20261016120000_editable_invoices.sql`: applied by the user in the SQL Editor and verified (columns
   present, function security definer, no anon execute, authenticated execute).

@@ -76,7 +76,7 @@ export function montageLine(hourlyRateExCents: number | null | undefined): Draft
   };
 }
 
-export function articleLine(article: Pick<Article, "id" | "name" | "diameterMm" | "lengthMm" | "salePriceExCents" | "vatRate">): DraftLine {
+export function articleLine(article: Pick<Article, "id" | "name" | "diameterMm" | "lengthMm" | "salePriceExCents" | "markupSalePriceExCents" | "vatRate">): DraftLine {
   const price = salePriceInclCents(article);
   return {
     key: nextKey(),

@@ -24,11 +24,13 @@ type ArticleDialogProps = {
   /** Null for a new article. */
   article: Article | null;
   categories: string[];
+  /** Markup that gives an article without a sale price its price. */
+  markupPct: number;
   onClose: () => void;
 };
 
 // Adds or edits an article. Only the name is required. Rendered only while open.
-export default function ArticleDialog({ article, categories, onClose }: ArticleDialogProps) {
+export default function ArticleDialog({ article, categories, markupPct, onClose }: ArticleDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -91,7 +93,12 @@ export default function ArticleDialog({ article, categories, onClose }: ArticleD
           <div className="customer-grid">
             <label className="stacked-label">
               <span>Verkoopprijs excl. btw (€)</span>
-              <input name="salePriceEx" inputMode="decimal" defaultValue={price(article?.salePriceExCents ?? null)} />
+              <input
+                name="salePriceEx"
+                inputMode="decimal"
+                placeholder={`leeg: inkoop + ${String(markupPct).replace(".", ",")}%`}
+                defaultValue={price(article?.salePriceExCents ?? null)}
+              />
             </label>
             <label className="stacked-label">
               <span>Btw</span>
