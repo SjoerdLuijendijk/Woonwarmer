@@ -44,15 +44,21 @@ function articleGroups(articles: Article[]): Group[] {
   }));
 }
 
+export type LineSource = "stove" | "article";
+
 type LineBrowserProps = {
-  title: string;
-  groups: Group[];
+  source: LineSource;
+  stoves?: QuoteStoveOption[];
+  articles: Article[];
   onPick: (line: DraftLine) => void;
   onClose: () => void;
 };
 
-// A scrollable list in groups to pick quote lines from; stays open to add several. Rendered only while open.
-function LineBrowser({ title, groups, onPick, onClose }: LineBrowserProps) {
+// A scrollable list of stoves or articles in groups to pick lines from; stays open to add several.
+// Rendered only while open.
+export default function LineBrowser({ source, stoves, articles, onPick, onClose }: LineBrowserProps) {
+  const title = source === "stove" ? "Kachel toevoegen" : "Artikel toevoegen";
+  const groups = source === "stove" ? stoveGroups(stoves ?? []) : articleGroups(articles);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState<Set<string>>(() => new Set(groups.length === 1 ? [groups[0].key] : []));
   const [added, setAdded] = useState(0);
@@ -113,40 +119,5 @@ function LineBrowser({ title, groups, onPick, onClose }: LineBrowserProps) {
         <button type="button" className="primary-button" onClick={() => dialogRef.current?.close()}>Klaar</button>
       </div>
     </dialog>
-  );
-}
-
-type QuoteLinePickerProps = {
-  /** Leave out to offer articles only (invoices). */
-  stoves?: QuoteStoveOption[];
-  articles: Article[];
-  onPick: (line: DraftLine) => void;
-  disabled?: boolean;
-};
-
-// "Kachel toevoegen" (when stoves are given) and "Artikel toevoegen": each opens a list to scroll
-// through and pick from.
-export default function QuoteLinePicker({ stoves, articles, onPick, disabled }: QuoteLinePickerProps) {
-  const [browsing, setBrowsing] = useState<"stove" | "article" | null>(null);
-
-  return (
-    <>
-      {stoves && (
-        <button type="button" className="secondary-button" onClick={() => setBrowsing("stove")} disabled={disabled}>
-          ＋ Kachel toevoegen
-        </button>
-      )}
-      <button type="button" className="secondary-button" onClick={() => setBrowsing("article")} disabled={disabled}>
-        ＋ Artikel toevoegen
-      </button>
-      {browsing && (
-        <LineBrowser
-          title={browsing === "stove" ? "Kachel toevoegen" : "Artikel toevoegen"}
-          groups={browsing === "stove" ? stoveGroups(stoves ?? []) : articleGroups(articles)}
-          onPick={onPick}
-          onClose={() => setBrowsing(null)}
-        />
-      )}
-    </>
   );
 }

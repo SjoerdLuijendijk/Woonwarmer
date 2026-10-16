@@ -967,7 +967,7 @@ a {
   width: min(1240px, calc(100vw - 32px));
   max-width: none;
   max-height: calc(100dvh - 32px);
-  padding: 20px 24px 24px;
+  padding: 0 24px;
   border: 0;
   border-radius: 14px;
   color: var(--ink);
@@ -984,6 +984,23 @@ a {
   margin-bottom: 12px;
 }
 
+/* In the invoice and quote dialogs the title and close button stay in view while the form scrolls. */
+.invoice-dialog > .invoice-dialog-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0 -24px 20px;
+  padding: 16px 24px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.dialog-subtitle {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
 .invoice-dialog-header h2 {
   margin: 0;
   font-size: 22px;
@@ -991,14 +1008,19 @@ a {
 
 .invoice-layout {
   display: grid;
-  gap: 24px;
+  gap: 28px;
 }
 
 .invoice-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 22px;
   min-width: 0;
+}
+
+.invoice-dialog > .notice,
+.invoice-dialog > .invoice-created {
+  margin-bottom: 24px;
 }
 
 .invoice-stock {
@@ -1025,6 +1047,14 @@ a {
   font-weight: 700;
 }
 
+.invoice-dialog .invoice-section legend {
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .invoice-section input,
 .invoice-section select {
   width: 100%;
@@ -1034,6 +1064,20 @@ a {
   border-radius: 8px;
   background: white;
   font-size: 15px;
+}
+
+/* A fixed height keeps selects level with the text fields (Safari ignores min-height on selects). */
+.invoice-dialog .invoice-section input:not([type="checkbox"]),
+.invoice-dialog .invoice-section select {
+  height: 40px;
+  min-height: 0;
+}
+
+.invoice-dialog .invoice-section input:focus,
+.invoice-dialog .invoice-section select:focus {
+  border-color: var(--accent);
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 .stacked-label > span {
@@ -1058,6 +1102,34 @@ a {
   grid-column: 1 / -1;
 }
 
+/* Customer details on three rows: name; address, postal code, city; e-mail, phone. Each field sets
+   its columns out of 12 in --span (and --span-narrow on a phone). */
+.customer-fields {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 10px 12px;
+}
+
+.customer-fields > label {
+  grid-column: span var(--span-narrow, 12);
+  min-width: 0;
+}
+
+.label-optional {
+  font-weight: 400;
+}
+
+@media (min-width: 560px) {
+  .customer-fields > label {
+    grid-column: span var(--span, 12);
+  }
+}
+
+/* Column headings above the lines; only on wide screens, where the lines form a table. */
+.invoice-lines-head {
+  display: none;
+}
+
 .invoice-lines {
   display: flex;
   flex-direction: column;
@@ -1069,7 +1141,7 @@ a {
 
 .invoice-line {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr auto;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr) minmax(0, 1.2fr) auto;
   align-items: end;
   gap: 8px;
   padding: 10px;
@@ -1106,7 +1178,37 @@ a {
 .line-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+.line-actions .form-hint {
+  margin: 0;
+  font-size: 13px;
+}
+
+.add-line-button {
+  min-height: 40px;
+  padding: 8px 16px;
+}
+
+.status-menu.add-line-menu {
+  width: 280px;
+}
+
+.status-menu.add-line-menu button {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+}
+
+.add-line-label {
+  font-weight: 600;
+}
+
+.add-line-detail {
+  color: var(--muted);
+  font-size: 12.5px;
 }
 
 .line-remove {
@@ -1133,6 +1235,60 @@ a {
   padding: 12px 14px;
   border-radius: 10px;
   background: var(--background);
+}
+
+/* In the dialogs: a narrow block on the right, like the totals on the invoice itself. */
+.invoice-dialog .invoice-totals {
+  align-self: flex-end;
+  width: min(100%, 320px);
+  font-size: 15px;
+}
+
+.invoice-dialog .invoice-totals .invoice-total {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  font-size: 18px;
+}
+
+/* Status and actions stay in view at the bottom of the dialog while the form scrolls. */
+.dialog-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: auto;
+  padding: 12px 0 16px;
+  border-top: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.dialog-footer-status {
+  flex: 1 1 200px;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.dialog-footer-status p {
+  margin: 0;
+}
+
+.dialog-footer .primary-button,
+.dialog-footer .secondary-button {
+  min-height: 44px;
+}
+
+.preview-link {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.preview-link:hover {
+  color: var(--accent);
 }
 
 .invoice-totals div {
@@ -1165,6 +1321,7 @@ a {
   align-items: flex-start;
   gap: 8px;
   min-width: 0;
+  padding-bottom: 16px;
 }
 
 .invoice-preview iframe {
@@ -1191,7 +1348,7 @@ a {
 
 @media (min-width: 960px) {
   .invoice-layout {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
   }
 
   .invoice-line {
@@ -1209,6 +1366,74 @@ a {
 
   .invoice-preview iframe {
     height: calc(100dvh - 150px);
+  }
+
+  /* In the dialogs the lines form a table: one row of headings, rows without their own labels. */
+  .invoice-dialog .invoice-lines-head,
+  .invoice-dialog .invoice-line {
+    grid-template-columns: minmax(0, 1fr) 56px 100px 92px 28px;
+    gap: 8px;
+  }
+
+  .invoice-dialog .invoice-lines-head {
+    display: grid;
+    padding: 0 0 6px;
+    border-bottom: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+
+  .invoice-dialog .invoice-lines {
+    gap: 6px;
+  }
+
+  .invoice-dialog .invoice-line {
+    align-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .invoice-dialog .invoice-line.is-invalid {
+    margin: 0 -6px;
+    padding: 4px 6px;
+    border-radius: 8px;
+  }
+
+  .invoice-dialog .invoice-line .stacked-label > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .invoice-dialog .invoice-line .line-remove {
+    width: 28px;
+    height: 28px;
+    background: none;
+    color: var(--muted);
+    font-size: 18px;
+  }
+
+  .invoice-dialog .invoice-line .line-remove:not(:disabled):hover {
+    background: var(--background);
+    color: var(--sold);
+  }
+
+  .invoice-dialog .invoice-line .line-remove:disabled {
+    visibility: hidden;
+  }
+
+  /* Below the sticky header of the dialog. */
+  .invoice-dialog .invoice-preview {
+    top: 92px;
+  }
+
+  .invoice-dialog .invoice-preview iframe {
+    height: calc(100dvh - 32px - 92px - 52px);
   }
 }
 

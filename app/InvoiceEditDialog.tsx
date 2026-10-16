@@ -3,15 +3,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type { Article } from "../lib/articles";
 import { downloadFile } from "../lib/download-file";
-import { invoiceTotals, MAX_INVOICE_LINES, type Customer, type Invoice } from "../lib/invoice";
+import { invoiceTotals, type Customer, type Invoice } from "../lib/invoice";
 import { toCustomer, toInvoiceLines, type DraftCustomer, type DraftLine } from "../lib/invoice-draft";
 import { formatPriceInput } from "../lib/price";
 import CustomerFields from "./CustomerFields";
 import { getInvoiceSources, updateInvoice } from "./invoice-actions";
 import InvoiceLinesEditor from "./InvoiceLinesEditor";
 import InvoiceTotalsSummary from "./InvoiceTotalsSummary";
-import QuoteLinePicker from "./QuoteLinePicker";
 import { usePdfPreview } from "./usePdfPreview";
+
+const DATE_FORMAT = new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 
 const toDraftCustomer = (customer: Customer): DraftCustomer => ({
   ...customer,
@@ -107,34 +108,44 @@ export default function InvoiceEditDialog({ invoiceId, invoice: initialInvoice, 
       }}
     >
       <div className="invoice-dialog-header">
-        <h2 id="invoice-edit-title" ref={titleRef} tabIndex={-1} className="dialog-title">
-          Factuur {saved.number}
-        </h2>
+        <div>
+          <h2 id="invoice-edit-title" ref={titleRef} tabIndex={-1} className="dialog-title">
+            Factuur {saved.number}
+          </h2>
+          <p className="dialog-subtitle">
+            {DATE_FORMAT.format(new Date(saved.issueDate))}
+            {saved.stoveNumber !== null && <> · Kachel {saved.stoveNumber}</>}
+          </p>
+        </div>
         <button type="button" className="line-remove" onClick={() => dialogRef.current?.close()} aria-label="Sluiten">×</button>
       </div>
 
       <div className="invoice-layout">
         <form className="invoice-form" onSubmit={handleSave}>
           <CustomerFields customer={customer} onChange={setCustomer} />
-          <InvoiceLinesEditor hourlyRateExCents={saved.seller.hourly_rate_ex_cents ?? null} lines={lines} invalid={showLineErrors ? invalid : []} onChange={setLines}>
-            <QuoteLinePicker
-              articles={articles ?? []}
-              onPick={(line) => setLines((current) => [...current, line])}
-              disabled={!articles || lines.length >= MAX_INVOICE_LINES}
-            />
-          </InvoiceLinesEditor>
+          <InvoiceLinesEditor
+            hourlyRateExCents={saved.seller.hourly_rate_ex_cents ?? null}
+            lines={lines}
+            invalid={showLineErrors ? invalid : []}
+            onChange={setLines}
+            articles={articles}
+            onPick={(line) => setLines((current) => [...current, line])}
+          />
           <InvoiceTotalsSummary totals={totals} />
           {saved.stoveNumber !== null && (
-            <p className="muted">Een wijziging past de voorraad van kachel {saved.stoveNumber} niet aan.</p>
+            <p className="form-hint muted">Een wijziging past de voorraad van kachel {saved.stoveNumber} niet aan.</p>
           )}
-          {error && <p className="field-error" role="alert">{error}</p>}
-          {message && <p className="field-success" role="status">{message}</p>}
-          <div className="button-row">
-            <button className="primary-button" type="submit" disabled={pending}>
-              {pending ? "Opslaan…" : "Wijzigingen opslaan"}
-            </button>
+          <div className="dialog-footer">
+            <div className="dialog-footer-status">
+              {error && <p className="field-error" role="alert">{error}</p>}
+              {message && !unsaved && <p className="field-success" role="status">{message}</p>}
+              {unsaved && !error && <p className="muted">Niet-opgeslagen wijzigingen</p>}
+            </div>
             <button type="button" className="secondary-button" onClick={download} disabled={pending || unsaved} title={unsaved ? "Sla eerst de wijzigingen op" : undefined}>
               PDF downloaden
+            </button>
+            <button className="primary-button" type="submit" disabled={pending || !unsaved}>
+              {pending ? "Opslaan…" : "Opslaan"}
             </button>
           </div>
         </form>
@@ -143,7 +154,7 @@ export default function InvoiceEditDialog({ invoiceId, invoice: initialInvoice, 
           {previewUrl ? (
             <>
               <iframe src={`${previewUrl}#view=FitH`} title="Voorvertoning van de factuur" />
-              <a className="text-button" href={previewUrl} target="_blank" rel="noopener noreferrer">Voorvertoning in nieuw tabblad</a>
+              <a className="preview-link" href={previewUrl} target="_blank" rel="noopener noreferrer">Voorvertoning in nieuw tabblad</a>
             </>
           ) : (
             <p className="muted">Voorvertoning maken…</p>
