@@ -44,6 +44,13 @@ Branch: `feature/edit-invoices`
   1 MB), files named by content hash so shared photos are stored once; `articles.image_url` holds the
   public URL. Artikelen → "Afbeeldingen importeren" takes images named after the SKU, one per Server
   Action call, resized to max. 800 px JPEG with sharp. Thumbnails in the article list and line browser.
+- Released article images. Fetched the photo of every HAVÉ article from its portal product page in the
+  logged-in Chrome session (1,741 pages, 570 distinct images) and imported them through the app:
+  1,683 articles have a photo; the other 58 have none in the portal either. Temporary local copies
+  were moved to the Trash afterwards, as were the article CSV files.
+- Branch `fix/article-image-slash-sku` (released): a "/" cannot be in a file name, so the image import
+  also matches "0502_31001" to SKU "0502/31001" when no article has the name exactly.
+- Deleted the merged branches of today locally and on GitHub.
 
 ## Decisions
 - User: invoices are not sent from the app yet, so they stay editable with the same number (no credit
@@ -53,8 +60,8 @@ Branch: `feature/edit-invoices`
 - Editable invoices: not checked in the browser by me after the production release.
 - Other unpaged lists (stock table `getStoves`, invoices, quotes) still stop at 1,000 rows; fine for now.
 - Markup is one percentage for all articles; per category is possible later if needed.
-- Article images are fetched in the logged-in Chrome session from each product page and imported
-  through the app; local copies are only temporary and removed afterwards.
+- HAVÉ prices and photos do not update by themselves: re-read the portal (or ask HAVÉ for their XML
+  feed) to refresh purchase prices; the CSV import keeps sale prices entered in the app.
 - Dialog layout: check in the real app (create invoice, edit invoice, quote), including the
   "＋ Nieuwe regel" menu inside the dialog on Safari and on a phone. Long descriptions are still cut
   off in the line field (full text on hover).
