@@ -7,8 +7,9 @@ import { formatPrice } from "../lib/price";
 import type { QuoteStoveOption } from "../lib/quote-queries";
 import { stoveProductName } from "../lib/stove-specs";
 import { CONDITION_LABELS, type Condition } from "../lib/stoves";
+import ArticleThumb from "./ArticleThumb";
 
-type Item = { key: string; label: string; detail: string; line: () => DraftLine };
+type Item = { key: string; label: string; detail: string; imageUrl?: string | null; line: () => DraftLine };
 type Group = { key: string; title: string; items: Item[] };
 
 type StoveGroupKey = Condition | "order" | "other" | "sold";
@@ -46,6 +47,7 @@ function articleGroups(articles: Article[]): Group[] {
         key: `article-${article.id}`,
         label: articleDescription(article),
         detail: price === null ? "geen prijs" : `${formatPrice(price)} incl.`,
+        imageUrl: article.imageUrl,
         line: () => articleLine(article),
       };
     }),
@@ -111,6 +113,7 @@ export default function LineBrowser({ source, stoves, articles, onPick, onClose 
                 {group.items.map((item) => (
                   <li key={item.key}>
                     <button type="button" onClick={() => pick(item)}>
+                      {item.imageUrl !== undefined && <ArticleThumb url={item.imageUrl} />}
                       <span className="line-picker-label">{item.label}</span>
                       <span className="line-picker-detail">{item.detail}</span>
                       <span className="line-browser-add" aria-hidden="true">＋</span>

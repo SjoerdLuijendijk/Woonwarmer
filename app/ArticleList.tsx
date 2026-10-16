@@ -6,7 +6,9 @@ import { formatPrice } from "../lib/price";
 import { onRowClick } from "../lib/row-click";
 import { deleteArticle, deleteArticles } from "./article-actions";
 import ArticleDialog from "./ArticleDialog";
+import ArticleImageImport from "./ArticleImageImport";
 import ArticleImport from "./ArticleImport";
+import ArticleThumb from "./ArticleThumb";
 import ArticleMarkupForm from "./ArticleMarkupForm";
 import { useDialog } from "./DialogProvider";
 
@@ -96,6 +98,7 @@ export default function ArticleList({ articles, markupPct }: { articles: Article
           <h1 id="articles-title">Artikelen</h1>
           <div className="toolbar-actions">
             <ArticleImport />
+            <ArticleImageImport />
             <button type="button" className="sale-button" onClick={() => setEditing({ article: null })}>+ Nieuw artikel</button>
           </div>
         </div>
@@ -194,7 +197,12 @@ export default function ArticleList({ articles, markupPct }: { articles: Article
                             />
                           </label>
                         </td>
-                        <td data-label="Naam" className="cell-brand">{article.name}</td>
+                        <td data-label="Naam" className="cell-brand">
+                          <span className="article-name">
+                            <ArticleThumb url={article.imageUrl} />
+                            {article.name}
+                          </span>
+                        </td>
                         <td data-label="Ø mm" className="cell-numeric">{article.diameterMm?.replace(">", " → ") ?? "—"}</td>
                         <td data-label="Lengte mm" className="cell-numeric">{article.lengthMm ?? "—"}</td>
                         <td data-label="Eenheid">{article.unit ?? "—"}</td>

@@ -2860,6 +2860,41 @@ a {
   font-weight: 700;
 }
 
+/* Article items carry a photo in front of the name and price. */
+.line-browser-group li button:has(.article-thumb) {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.line-browser-group li button:has(.article-thumb) .article-thumb {
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+
+.line-browser-group li button:has(.article-thumb) .line-picker-detail {
+  grid-column: 2;
+}
+
+.line-browser-group li button:has(.article-thumb) .line-browser-add {
+  grid-column: 3;
+}
+
+.article-thumb {
+  display: inline-block;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+  object-fit: contain;
+}
+
+.article-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .line-browser-added {
   margin-right: auto;
   align-self: center;

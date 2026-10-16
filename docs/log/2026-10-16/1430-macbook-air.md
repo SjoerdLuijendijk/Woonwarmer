@@ -39,6 +39,11 @@ Branch: `feature/edit-invoices`
   default and set to 40%). Articles without a sale price of their own get purchase price × (1 + markup)
   excl. VAT, computed when listed (`markupSalePriceExCents`), so changing the markup changes all such
   prices at once; an article's own sale price always wins. Shown muted in the article list.
+- Released the markup (user confirmed ×1.40 on purchase price); migration applied and verified.
+- Branch `feature/article-images`: public-read bucket `article-images` (team members write, JPEG only,
+  1 MB), files named by content hash so shared photos are stored once; `articles.image_url` holds the
+  public URL. Artikelen → "Afbeeldingen importeren" takes images named after the SKU, one per Server
+  Action call, resized to max. 800 px JPEG with sharp. Thumbnails in the article list and line browser.
 
 ## Decisions
 - User: invoices are not sent from the app yet, so they stay editable with the same number (no credit
@@ -48,7 +53,8 @@ Branch: `feature/edit-invoices`
 - Editable invoices: not checked in the browser by me after the production release.
 - Other unpaged lists (stock table `getStoves`, invoices, quotes) still stop at 1,000 rows; fine for now.
 - Markup is one percentage for all articles; per category is possible later if needed.
-- Article images: the portal's images only load when logged in; storing them in the app is a separate task.
+- Article images are fetched in the logged-in Chrome session from each product page and imported
+  through the app; local copies are only temporary and removed afterwards.
 - Dialog layout: check in the real app (create invoice, edit invoice, quote), including the
   "＋ Nieuwe regel" menu inside the dialog on Safari and on a phone. Long descriptions are still cut
   off in the line field (full text on hover).
@@ -63,7 +69,8 @@ Branch: `feature/edit-invoices`
   Protection, invoice amount format "€ -100,00".
 
 ## Manual steps and migrations
-- `20261016170000_article_markup.sql`: to be applied by the user in the SQL Editor before
-  `feature/article-markup` is released (the article page reads the new table).
+- `20261016190000_article_images.sql`: applied by the user and verified (bucket public, 1 MB, JPEG;
+  insert and delete policies for team members).
+- `20261016170000_article_markup.sql`: applied by the user and verified (40%, RLS, policies, no anon access).
 - `20261016120000_editable_invoices.sql`: applied by the user in the SQL Editor and verified (columns
   present, function security definer, no anon execute, authenticated execute).
