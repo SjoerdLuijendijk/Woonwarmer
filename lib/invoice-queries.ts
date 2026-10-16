@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Company, Invoice } from "./invoice";
+import { lineImageUrls } from "./line-images";
 
 const COMPANY_COLUMNS = "name, address, postal_code, city, kvk_number, vat_number, iban, email, phone, payment_term_days, hourly_rate_ex_cents, invoice_footer";
 
@@ -33,13 +34,14 @@ export async function getInvoice(supabase: SupabaseClient, id: number): Promise<
   const { data, error } = await supabase
     .from("invoices")
     .select(
-      "invoice_number, issue_date, stove_number, seller, customer_name, customer_address, customer_postal_code, customer_city, customer_email, customer_phone, invoice_lines (position, description, quantity, unit_price_cents, vat_rate, margin_scheme)",
+      "invoice_number, issue_date, stove_number, seller, customer_name, customer_address, customer_postal_code, customer_city, customer_email, customer_phone, invoice_lines (position, description, quantity, unit_price_cents, vat_rate, margin_scheme, stove_number, article_id)",
     )
     .eq("id", id)
     .order("position", { referencedTable: "invoice_lines", ascending: true })
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
+  const images = await lineImageUrls(supabase, data.invoice_lines);
 
   return {
     number: data.invoice_number,
@@ -54,12 +56,15 @@ export async function getInvoice(supabase: SupabaseClient, id: number): Promise<
       email: data.customer_email,
       phone: data.customer_phone,
     },
-    lines: data.invoice_lines.map(({ description, quantity, unit_price_cents, vat_rate, margin_scheme }) => ({
+    lines: data.invoice_lines.map(({ description, quantity, unit_price_cents, vat_rate, margin_scheme, stove_number, article_id }, index) => ({
       description,
       quantity,
       unit_price_cents,
       vat_rate,
       margin_scheme,
+      stove_number,
+      article_id,
+      image_url: images[index],
     })),
   };
 }

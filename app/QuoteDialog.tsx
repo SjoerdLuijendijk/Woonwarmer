@@ -14,6 +14,7 @@ import CustomerFields from "./CustomerFields";
 import InvoiceLinesEditor from "./InvoiceLinesEditor";
 import InvoiceTotalsSummary from "./InvoiceTotalsSummary";
 import { getQuoteSources, saveQuote } from "./quote-actions";
+import { useLineImages, withLineImages } from "./useLineImages";
 
 const PREVIEW_DELAY_MS = 400;
 
@@ -116,6 +117,8 @@ export default function QuoteDialog({ quote: initialQuote, onClose }: QuoteDialo
   const { valid, invalid } = useMemo(() => toInvoiceLines(lines), [lines]);
   const totals = invoiceTotals(valid);
   const company = sources?.company;
+  const quoteLines = useMemo(() => previewLines(lines), [lines]);
+  const lineImages = useLineImages(quoteLines);
 
   const draftQuote = useMemo<Quote>(
     () => ({
@@ -126,9 +129,9 @@ export default function QuoteDialog({ quote: initialQuote, onClose }: QuoteDialo
       validUntil,
       customer: toQuoteCustomer(customer),
       notes: notes.trim() || null,
-      lines: previewLines(lines),
+      lines: withLineImages(quoteLines, lineImages),
     }),
-    [saved, today, validUntil, customer, notes, lines],
+    [saved, today, validUntil, customer, notes, quoteLines, lineImages],
   );
 
   // Live preview, rebuilt shortly after the last change.

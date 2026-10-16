@@ -106,7 +106,15 @@ export function toInvoiceLines(lines: DraftLine[]) {
     const price = parsePriceToCents(line.price, { allowNegative: true });
     const description = line.description.trim();
     if (!description || quantity === null || price === null) invalid.push(index);
-    else valid.push({ description, quantity, unit_price_cents: price, ...draftLineVat(line) });
+    else
+      valid.push({
+        description,
+        quantity,
+        unit_price_cents: price,
+        ...draftLineVat(line),
+        stove_number: line.stoveNumber ?? null,
+        article_id: line.articleId ?? null,
+      });
   });
   return { valid, invalid };
 }
