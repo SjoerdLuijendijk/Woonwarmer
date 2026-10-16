@@ -1,32 +1,67 @@
-import { MAX_INVOICE_LINES, VAT_RATES } from "../lib/invoice";
+"use client";
+
+import { useState } from "react";
+import type { Article } from "../lib/articles";
+import { MAX_INVOICE_LINES, MONTAGE_VAT_RATE, VAT_RATES } from "../lib/invoice";
 import { draftVatPatch, draftVatValue, emptyLine, montageLine, type DraftLine } from "../lib/invoice-draft";
+import { formatPrice } from "../lib/price";
+import type { QuoteStoveOption } from "../lib/quote-queries";
+import AddLineMenu, { type AddLineOption } from "./AddLineMenu";
+import LineBrowser, { type LineSource } from "./LineBrowser";
 
 type InvoiceLinesEditorProps = {
   lines: DraftLine[];
   invalid: number[];
   onChange: (lines: DraftLine[]) => void;
+  /** Articles to pick lines from; null while loading. */
+  articles: Article[] | null;
+  /** Quotes: stoves to pick lines from. Leave out for invoices. */
+  stoves?: QuoteStoveOption[];
+  /** Adds a picked stove or article line. Use a state updater: several lines can be picked in a row. */
+  onPick: (line: DraftLine) => void;
   /** Quotes: typed lines can be saved in the article list. */
   allowSaveAsArticle?: boolean;
-  /** Extra controls next to "Regel toevoegen", such as picking a stove or article. */
-  children?: React.ReactNode;
-  /** Hourly rate excluding VAT for "＋ Montage": null when not set (the price stays empty), undefined while loading. */
+  /** Hourly rate excluding VAT for montage: null when not set (the price stays empty), undefined while loading. */
   hourlyRateExCents?: number | null;
 };
 
-export default function InvoiceLinesEditor({ lines, invalid, onChange, allowSaveAsArticle, children, hourlyRateExCents }: InvoiceLinesEditorProps) {
+function montageDetail(hourlyRateExCents: number | null | undefined) {
+  if (hourlyRateExCents == null) return "Per uur; uurtarief nog niet ingesteld";
+  return `Per uur, ${formatPrice(Math.round((hourlyRateExCents * (100 + MONTAGE_VAT_RATE)) / 100), { alwaysCents: true })} incl. btw`;
+}
+
+// The lines of an invoice or quote as a compact table, with "＋ Nieuwe regel" to add a stove, an
+// article, montage or a line typed by hand.
+export default function InvoiceLinesEditor({ lines, invalid, onChange, articles, stoves, onPick, allowSaveAsArticle, hourlyRateExCents }: InvoiceLinesEditorProps) {
+  const [browsing, setBrowsing] = useState<LineSource | null>(null);
   const full = lines.length >= MAX_INVOICE_LINES;
+  const append = (line: DraftLine) => onChange(lines.length >= MAX_INVOICE_LINES ? lines : [...lines, line]);
   const update = (key: string, patch: Partial<DraftLine>) =>
     onChange(lines.map((line) => (line.key === key ? { ...line, ...patch } : line)));
+
+  const options: AddLineOption[] = [
+    // Stoves and articles load together, so both wait for the articles.
+    ...(stoves ? [{ key: "stove", label: "Kachel", detail: articles ? "Uit de voorraad" : "Kachels laden…", disabled: !articles, onSelect: () => setBrowsing("stove") }] : []),
+    { key: "article", label: "Artikel", detail: articles ? "Uit de artikellijst" : "Artikelen laden…", disabled: !articles, onSelect: () => setBrowsing("article") },
+    { key: "montage", label: "Montage", detail: montageDetail(hourlyRateExCents), onSelect: () => append(montageLine(hourlyRateExCents)) },
+    { key: "blank", label: "Losse regel", detail: "Omschrijving en prijs zelf invullen", onSelect: () => append(emptyLine()) },
+  ];
 
   return (
     <fieldset className="invoice-section">
       <legend>Regels</legend>
+      <div className="invoice-lines-head" aria-hidden="true">
+        <span>Omschrijving</span>
+        <span>Aantal</span>
+        <span>Prijs incl. btw</span>
+        <span>Btw</span>
+      </div>
       <ul className="invoice-lines">
         {lines.map((line, index) => (
           <li key={line.key} className={invalid.includes(index) ? "invoice-line is-invalid" : "invoice-line"}>
             <label className="stacked-label line-description">
               <span>Omschrijving</span>
-              <input value={line.description} maxLength={200} onChange={(event) => update(line.key, { description: event.target.value })} />
+              <input value={line.description} maxLength={200} title={line.description} onChange={(event) => update(line.key, { description: event.target.value })} />
             </label>
             <label className="stacked-label line-quantity">
               <span>Aantal</span>
@@ -34,7 +69,7 @@ export default function InvoiceLinesEditor({ lines, invalid, onChange, allowSave
             </label>
             <label className="stacked-label line-price">
               <span>Prijs incl. btw</span>
-              <input value={line.price} inputMode="text" placeholder="bijv. 250 of -100" onChange={(event) => update(line.key, { price: event.target.value })} />
+              <input value={line.price} inputMode="text" placeholder="bijv. 250" onChange={(event) => update(line.key, { price: event.target.value })} />
             </label>
             <label className="stacked-label line-vat">
               <span>Btw</span>
@@ -49,6 +84,7 @@ export default function InvoiceLinesEditor({ lines, invalid, onChange, allowSave
               onClick={() => onChange(lines.filter((other) => other.key !== line.key))}
               disabled={lines.length === 1}
               aria-label={`Regel ${index + 1} verwijderen`}
+              title="Regel verwijderen"
             >
               ×
             </button>
@@ -61,17 +97,20 @@ export default function InvoiceLinesEditor({ lines, invalid, onChange, allowSave
           </li>
         ))}
       </ul>
+      {lines.length === 0 && <p className="muted form-hint">Nog geen regels. Voeg er een toe met ＋ Nieuwe regel.</p>}
       <div className="line-actions">
-        {children}
-        <button type="button" className="secondary-button" onClick={() => onChange([...lines, montageLine(hourlyRateExCents)])} disabled={full}>
-          ＋ Montage
-        </button>
-        <button type="button" className="secondary-button" onClick={() => onChange([...lines, emptyLine()])} disabled={full}>
-          ＋ Losse regel
-        </button>
+        <AddLineMenu options={options} disabled={full} />
+        <p className="form-hint muted">Gebruikte kachel: btw „Marge”. Inruilkachel: minbedrag, bijv. -100.</p>
       </div>
-      <p className="form-hint muted">Gebruikte kachels vallen onder de margeregeling (btw „Marge”), nieuwe onder 21%. Een inruilkachel vul je in met een minbedrag, bijv. -100.</p>
-      {hourlyRateExCents === null && <p className="form-hint muted">Stel het uurtarief voor montage in bij Instellingen → Bedrijfsgegevens; dan vult ＋ Montage de prijs vanzelf in.</p>}
+      {browsing && (
+        <LineBrowser
+          source={browsing}
+          stoves={stoves}
+          articles={articles ?? []}
+          onPick={onPick}
+          onClose={() => setBrowsing(null)}
+        />
+      )}
     </fieldset>
   );
 }

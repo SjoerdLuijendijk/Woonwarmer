@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import { downloadFile } from "../lib/download-file";
 import type { Article } from "../lib/articles";
-import { invoiceTotals, MAX_INVOICE_LINES, type Company, type Invoice } from "../lib/invoice";
+import { invoiceTotals, type Company, type Invoice } from "../lib/invoice";
 import { EMPTY_CUSTOMER, emptyLine, stoveLine, stoveUnits, todayIsoDate, toCustomer, toInvoiceLines, type DraftCustomer, type DraftLine } from "../lib/invoice-draft";
 import type { InvoiceStock } from "../lib/invoice-queries";
 import type { Stove } from "../lib/stoves";
@@ -14,7 +14,6 @@ import { createInvoice, getInvoiceSources } from "./invoice-actions";
 import InvoiceLinesEditor from "./InvoiceLinesEditor";
 import InvoiceStockOption, { stockDeduction } from "./InvoiceStockOption";
 import InvoiceTotalsSummary from "./InvoiceTotalsSummary";
-import QuoteLinePicker from "./QuoteLinePicker";
 
 const PREVIEW_DELAY_MS = 400;
 
@@ -189,28 +188,33 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
           <div className="invoice-layout">
             <form className="invoice-form" onSubmit={handleCreate}>
               <CustomerFields customer={customer} onChange={setCustomer} />
-              <InvoiceLinesEditor hourlyRateExCents={company ? (company.hourly_rate_ex_cents ?? null) : undefined} lines={lines} invalid={showLineErrors ? invalid : []} onChange={setLines}>
-                <QuoteLinePicker
-                  articles={articles ?? []}
-                  onPick={(line) => setLines((current) => [...current, line])}
-                  disabled={!articles || lines.length >= MAX_INVOICE_LINES}
-                />
-              </InvoiceLinesEditor>
+              <InvoiceLinesEditor
+                hourlyRateExCents={company ? (company.hourly_rate_ex_cents ?? null) : undefined}
+                lines={lines}
+                invalid={showLineErrors ? invalid : []}
+                onChange={setLines}
+                articles={articles}
+                onPick={(line) => setLines((current) => [...current, line])}
+              />
               <InvoiceTotalsSummary totals={totals} />
               {stoveNumber !== null && (
                 <InvoiceStockOption stoveNumber={stoveNumber} stock={stock} units={units} checked={takeFromStock} onChange={setTakeFromStock} />
               )}
-              {error && <p className="field-error" role="alert">{error}</p>}
-              <button className="primary-button primary-button--large" type="submit" disabled={pending || !company}>
-                {pending ? "Factuur maken…" : "Factuur maken (PDF)"}
-              </button>
+              <div className="dialog-footer">
+                <div className="dialog-footer-status">
+                  {error && <p className="field-error" role="alert">{error}</p>}
+                </div>
+                <button className="primary-button" type="submit" disabled={pending || !company}>
+                  {pending ? "Factuur maken…" : "Factuur maken (PDF)"}
+                </button>
+              </div>
             </form>
 
             <div className="invoice-preview">
               {previewUrl ? (
                 <>
                   <iframe src={`${previewUrl}#view=FitH`} title="Voorvertoning van de factuur" />
-                  <a className="text-button" href={previewUrl} target="_blank" rel="noopener noreferrer">Voorvertoning in nieuw tabblad</a>
+                  <a className="preview-link" href={previewUrl} target="_blank" rel="noopener noreferrer">Voorvertoning in nieuw tabblad</a>
                 </>
               ) : (
                 <p className="muted">{company === undefined ? "Voorvertoning laden…" : "Voorvertoning maken…"}</p>

@@ -14,7 +14,6 @@ import CustomerFields from "./CustomerFields";
 import InvoiceLinesEditor from "./InvoiceLinesEditor";
 import InvoiceTotalsSummary from "./InvoiceTotalsSummary";
 import { getQuoteSources, saveQuote } from "./quote-actions";
-import QuoteLinePicker from "./QuoteLinePicker";
 
 const PREVIEW_DELAY_MS = 400;
 
@@ -231,9 +230,16 @@ export default function QuoteDialog({ quote: initialQuote, onClose }: QuoteDialo
         <div className="invoice-layout">
           <form className="invoice-form" onSubmit={handleSave}>
             <CustomerFields customer={customer} onChange={setCustomer} addressOptional />
-            <InvoiceLinesEditor hourlyRateExCents={company ? (company.hourly_rate_ex_cents ?? null) : undefined} lines={lines} invalid={showLineErrors ? invalid : []} onChange={setLines} allowSaveAsArticle>
-              <QuoteLinePicker stoves={sources?.stoves ?? []} articles={sources?.articles ?? []} onPick={addLine} disabled={!sources || lines.length >= MAX_INVOICE_LINES} />
-            </InvoiceLinesEditor>
+            <InvoiceLinesEditor
+              hourlyRateExCents={company ? (company.hourly_rate_ex_cents ?? null) : undefined}
+              lines={lines}
+              invalid={showLineErrors ? invalid : []}
+              onChange={setLines}
+              articles={sources?.articles ?? null}
+              stoves={sources?.stoves ?? []}
+              onPick={addLine}
+              allowSaveAsArticle
+            />
             <fieldset className="invoice-section">
               <legend>Voorwaarden</legend>
               <label className="stacked-label">
@@ -246,17 +252,19 @@ export default function QuoteDialog({ quote: initialQuote, onClose }: QuoteDialo
               </label>
             </fieldset>
             <InvoiceTotalsSummary totals={totals} />
-            {error && <p className="field-error" role="alert">{error}</p>}
-            {message && <p className="field-success" role="status">{message}</p>}
-            <div className="button-row">
-              <button className="primary-button" type="submit" disabled={pending || !sources}>
-                {pending ? "Opslaan…" : saved ? "Wijzigingen opslaan" : "Offerte opslaan"}
-              </button>
+            <div className="dialog-footer">
+              <div className="dialog-footer-status">
+                {error && <p className="field-error" role="alert">{error}</p>}
+                {message && <p className="field-success" role="status">{message}</p>}
+              </div>
               {saved && (
                 <button type="button" className="secondary-button" onClick={download} disabled={pending || !company}>
                   PDF downloaden
                 </button>
               )}
+              <button className="primary-button" type="submit" disabled={pending || !sources}>
+                {pending ? "Opslaan…" : saved ? "Wijzigingen opslaan" : "Offerte opslaan"}
+              </button>
             </div>
           </form>
 
@@ -264,7 +272,7 @@ export default function QuoteDialog({ quote: initialQuote, onClose }: QuoteDialo
             {previewUrl ? (
               <>
                 <iframe src={`${previewUrl}#view=FitH`} title="Voorvertoning van de offerte" />
-                <a className="text-button" href={previewUrl} target="_blank" rel="noopener noreferrer">Voorvertoning in nieuw tabblad</a>
+                <a className="preview-link" href={previewUrl} target="_blank" rel="noopener noreferrer">Voorvertoning in nieuw tabblad</a>
               </>
             ) : (
               <p className="muted">{sources ? "Voorvertoning maken…" : "Laden…"}</p>

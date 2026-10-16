@@ -10,13 +10,24 @@ Branch: `feature/edit-invoices`
   The download in the dialog is the saved version.
 - The confirmation when making an invoice no longer says it cannot be changed afterwards.
 - New `usePdfPreview` hook for the live preview, used by the new dialog.
+- Released the editable invoices to staging and production. Added the local permission rule
+  `Bash(git push origin main)` on this Mac so releases can be pushed from Claude Code.
+- Branch `feature/invoice-dialog-layout`: calmer, more compact invoice and quote dialogs. Sticky header
+  (title, date, stove) and sticky footer with status and buttons; customer details on three rows; lines
+  as a table with one row of headings (cards on a phone); one "＋ Nieuwe regel" menu (Kachel for quotes,
+  Artikel, Montage, Losse regel) instead of separate buttons; totals as a narrow block on the right.
+  `QuoteLinePicker` became `LineBrowser`, opened from the new `AddLineMenu`. Checked with a static
+  HTML copy of the markup in headless Chrome (desktop and 390px), not in the real app.
 
 ## Decisions
 - User: invoices are not sent from the app yet, so they stay editable with the same number (no credit
   invoice). The invoice records who changed it last (`updated_at`, `updated_by`).
 
 ## Open items
-- Not tested in the browser yet; test on the preview deployment of this branch, then release to staging.
+- Editable invoices: not checked in the browser by me after the production release.
+- Dialog layout: check in the real app (create invoice, edit invoice, quote), including the
+  "＋ Nieuwe regel" menu inside the dialog on Safari and on a phone. Long descriptions are still cut
+  off in the line field (full text on hover).
 - Editing the quantity on a stove line does not adjust the stock; correct the stock by hand.
 - Two people editing the same invoice at once: the last save wins.
 - `InvoiceDialog` and `QuoteDialog` still have their own preview code; they can use `usePdfPreview`.
