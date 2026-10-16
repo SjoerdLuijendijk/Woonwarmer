@@ -5,12 +5,13 @@ import { useEffect, useId, useMemo, useRef, useState, useTransition } from "reac
 import { downloadFile } from "../lib/download-file";
 import type { Article } from "../lib/articles";
 import { invoiceTotals, type Company, type Invoice } from "../lib/invoice";
-import { EMPTY_CUSTOMER, emptyLine, stoveLine, stoveUnits, todayIsoDate, toCustomer, toInvoiceLines, type DraftCustomer, type DraftLine } from "../lib/invoice-draft";
+import { EMPTY_CUSTOMER, emptyLine, invoiceStoveNumber, stoveLine, stoveUnits, todayIsoDate, toCustomer, toInvoiceLines, type DraftCustomer, type DraftLine } from "../lib/invoice-draft";
 import type { InvoiceStock } from "../lib/invoice-queries";
+import type { QuoteStoveOption } from "../lib/quote-queries";
 import type { Stove } from "../lib/stoves";
 import CustomerFields from "./CustomerFields";
 import { useDialog } from "./DialogProvider";
-import { createInvoice, getInvoiceSources } from "./invoice-actions";
+import { createInvoice, getInvoiceSources, getStoveStockForInvoice } from "./invoice-actions";
 import InvoiceLinesEditor from "./InvoiceLinesEditor";
 import InvoiceStockOption, { stockDeduction } from "./InvoiceStockOption";
 import InvoiceTotalsSummary from "./InvoiceTotalsSummary";
@@ -24,22 +25,21 @@ async function renderPdf(invoice: Invoice) {
 }
 
 /** A concept invoice filled in beforehand, for example from an accepted quote. */
-export type InvoicePrefill = { customer: DraftCustomer; lines: DraftLine[]; stoveNumber: number | null };
+export type InvoicePrefill = { customer: DraftCustomer; lines: DraftLine[] };
 
 type InvoiceDialogProps = {
-  /** Null: a separate invoice, opened with a button on the invoices page. */
+  /** Null: a separate invoice, opened with a button on the invoices page; its stove follows the lines. */
   stove: Stove | null;
   /** Loads customer and lines when the dialog opens; the button then reads "Factuur maken". */
   loadPrefill?: () => Promise<InvoicePrefill | null>;
 };
 
 export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps) {
-  const [prefillStove, setPrefillStove] = useState<number | null>(null);
-  const stoveNumber = stove?.number ?? prefillStove;
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [company, setCompany] = useState<Company | null | undefined>(undefined);
   const [articles, setArticles] = useState<Article[] | null>(null);
+  const [stoves, setStoves] = useState<QuoteStoveOption[] | null>(null);
   const [stock, setStock] = useState<InvoiceStock | null>(null);
   const [takeFromStock, setTakeFromStock] = useState(false);
   const [customer, setCustomer] = useState<DraftCustomer>(EMPTY_CUSTOMER);
@@ -51,6 +51,8 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
   const [pending, startTransition] = useTransition();
   const { confirm } = useDialog();
 
+  // A separate invoice is about the one stove picked on its lines (as an invoice from a stove row is).
+  const stoveNumber = stove?.number ?? invoiceStoveNumber(lines);
   const { valid, invalid } = useMemo(() => toInvoiceLines(lines), [lines]);
   const totals = invoiceTotals(valid);
   const units = stoveUnits(lines, stoveNumber);
@@ -61,24 +63,37 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
     if (loadPrefill && !prefill) return;
     setCustomer(prefill?.customer ?? EMPTY_CUSTOMER);
     setLines(prefill?.lines ?? [stove ? stoveLine(stove) : emptyLine()]);
-    const invoicedStove = stove?.number ?? prefill?.stoveNumber ?? null;
-    setPrefillStove(prefill?.stoveNumber ?? null);
     setCreated(null);
     setError(null);
     setShowLineErrors(false);
     setCompany(undefined);
     setArticles(null);
-    setStock(null);
+    setStoves(null);
     setIsOpen(true);
     dialogRef.current?.showModal();
-    getInvoiceSources(invoicedStove).then((result) => {
+    getInvoiceSources({ withStoves: !stove }).then((result) => {
       if (!result.ok) return setError(result.error);
       setCompany(result.company);
       setArticles(result.articles);
+      setStoves(result.stoves);
+    });
+  }
+
+  // Stock of the invoiced stove, loaded again when another stove is picked on a separate invoice.
+  useEffect(() => {
+    setStock(null);
+    if (!isOpen || stoveNumber === null) return;
+    let cancelled = false;
+    getStoveStockForInvoice(stoveNumber).then((result) => {
+      if (cancelled) return;
+      if (!result.ok) return setError(result.error);
       setStock(result.stock);
       setTakeFromStock(result.stock?.openSales === 0);
     });
-  }
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, stoveNumber]);
 
   // Live draft preview, rebuilt shortly after the last change.
   useEffect(() => {
@@ -166,7 +181,10 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
       )}
       <dialog ref={dialogRef} className="invoice-dialog" aria-labelledby={titleId} onClose={handleClose}>
         <div className="invoice-dialog-header">
-          <h2 id={titleId}>{stove ? `Factuur kachel ${stove.number}` : loadPrefill ? "Factuur van offerte" : "Losse factuur"}</h2>
+          <div>
+            <h2 id={titleId}>{stove ? `Factuur kachel ${stove.number}` : loadPrefill ? "Factuur van offerte" : "Losse factuur"}</h2>
+            {!stove && stoveNumber !== null && <p className="dialog-subtitle">Kachel {stoveNumber}</p>}
+          </div>
           <button type="button" className="line-remove" onClick={() => dialogRef.current?.close()} aria-label="Sluiten">×</button>
         </div>
 
@@ -194,9 +212,13 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
                 invalid={showLineErrors ? invalid : []}
                 onChange={setLines}
                 articles={articles}
+                stoves={stove ? undefined : (stoves ?? [])}
                 onPick={(line) => setLines((current) => [...current, line])}
               />
               <InvoiceTotalsSummary totals={totals} />
+              {!stove && stoveNumber === null && lines.some((line) => line.stoveNumber != null) && (
+                <p className="invoice-stock muted">Er staan meerdere kachels op de factuur: de voorraad verandert niet.</p>
+              )}
               {stoveNumber !== null && (
                 <InvoiceStockOption stoveNumber={stoveNumber} stock={stock} units={units} checked={takeFromStock} onChange={setTakeFromStock} />
               )}

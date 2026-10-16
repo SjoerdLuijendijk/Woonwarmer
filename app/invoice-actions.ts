@@ -8,6 +8,7 @@ import { requireTeamMember } from "../lib/auth";
 import type { Company, Invoice } from "../lib/invoice";
 import { getCompany, getInvoice, getInvoiceStock, type InvoiceStock } from "../lib/invoice-queries";
 import { parseCompany, parseInvoiceInput, parseStockDeduction } from "../lib/invoice-validation";
+import { listQuoteStoves, type QuoteStoveOption } from "../lib/quote-queries";
 import { syncStoveToShop } from "../lib/woocommerce/sync";
 import type { ActionResult } from "./actions";
 
@@ -38,20 +39,28 @@ export async function saveCompanySettings(formData: FormData): Promise<ActionRes
   return { ok: true };
 }
 
-// What the invoice dialog needs: the seller details, the articles to pick lines from, and the stock
-// of the invoiced stove (null for a separate invoice or a stove that no longer exists).
+// What the invoice dialogs need: the seller details and the articles to pick lines from, and for a
+// separate invoice also the stoves (sold ones included).
 export async function getInvoiceSources(
-  stoveNumber: number | null,
-): Promise<ActionResult<{ company: Company | null; articles: Article[]; stock: InvoiceStock | null }>> {
-  if (stoveNumber !== null && !isPositiveId(stoveNumber)) return { ok: false, error: "Onbekende kachel." };
+  { withStoves = false } = {},
+): Promise<ActionResult<{ company: Company | null; articles: Article[]; stoves: QuoteStoveOption[] | null }>> {
   const { supabase, isMember } = await requireTeamMember();
   if (!isMember) return NO_ACCESS;
-  const [company, articles, stock] = await Promise.all([
+  const [company, articles, stoves] = await Promise.all([
     getCompany(supabase),
     listArticles(supabase),
-    stoveNumber === null ? null : getInvoiceStock(supabase, stoveNumber),
+    withStoves ? listQuoteStoves(supabase, { includeSold: true }) : null,
   ]);
-  return { ok: true, company, articles, stock };
+  return { ok: true, company, articles, stoves };
+}
+
+// Stock of the invoiced stove, so the invoice dialog can offer to take the sold units from it; null
+// for a stove that no longer exists.
+export async function getStoveStockForInvoice(stoveNumber: number): Promise<ActionResult<{ stock: InvoiceStock | null }>> {
+  if (!isPositiveId(stoveNumber)) return { ok: false, error: "Onbekende kachel." };
+  const { supabase, isMember } = await requireTeamMember();
+  if (!isMember) return NO_ACCESS;
+  return { ok: true, stock: await getInvoiceStock(supabase, stoveNumber) };
 }
 
 // stoveNumber null: a separate invoice that is not about a stove. stockDeduction: the units of the stove

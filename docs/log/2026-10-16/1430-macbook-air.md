@@ -18,6 +18,12 @@ Branch: `feature/edit-invoices`
   Artikel, Montage, Losse regel) instead of separate buttons; totals as a narrow block on the right.
   `QuoteLinePicker` became `LineBrowser`, opened from the new `AddLineMenu`. Checked with a static
   HTML copy of the markup in headless Chrome (desktop and 390px), not in the real app.
+- Released the dialog layout to staging and production.
+- Branch `feature/invoice-pick-stove`: "＋ Nieuwe regel" in a separate invoice (and an invoice from a
+  quote) offers Kachel, with groups Gereviseerd, Nieuw, Op bestelling, Overig and Verkocht (invoices list
+  sold stoves too; quotes do not). With exactly one stove on the lines the invoice is about that stove
+  (`invoiceStoveNumber`), shown under the title, and the stock option loads for it
+  (`getStoveStockForInvoice`). Quotes now also show the Op bestelling group.
 
 ## Decisions
 - User: invoices are not sent from the app yet, so they stay editable with the same number (no credit

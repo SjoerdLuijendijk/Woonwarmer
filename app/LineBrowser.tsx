@@ -11,14 +11,22 @@ import { CONDITION_LABELS, type Condition } from "../lib/stoves";
 type Item = { key: string; label: string; detail: string; line: () => DraftLine };
 type Group = { key: string; title: string; items: Item[] };
 
-const CONDITION_ORDER: (Condition | null)[] = ["used", "new", null];
+type StoveGroupKey = Condition | "order" | "other" | "sold";
+const STOVE_GROUP_TITLES: Record<StoveGroupKey, string> = { ...CONDITION_LABELS, order: "Op bestelling", other: "Overig", sold: "Verkocht" };
+const STOVE_GROUP_ORDER: StoveGroupKey[] = ["used", "new", "order", "other", "sold"];
+
+function stoveGroupOf(stove: QuoteStoveOption): StoveGroupKey {
+  if (stove.madeToOrder) return "order";
+  if (stove.sold) return "sold";
+  return stove.condition ?? "other";
+}
 
 function stoveGroups(stoves: QuoteStoveOption[]): Group[] {
-  return CONDITION_ORDER.map((condition) => ({
-    key: condition ?? "other",
-    title: condition ? CONDITION_LABELS[condition] : "Overig",
+  return STOVE_GROUP_ORDER.map((key) => ({
+    key,
+    title: STOVE_GROUP_TITLES[key],
     items: stoves
-      .filter((stove) => stove.condition === condition)
+      .filter((stove) => stoveGroupOf(stove) === key)
       .map((stove) => ({
         key: `stove-${stove.number}`,
         label: `${stove.number} · ${stoveProductName(stove)}`,

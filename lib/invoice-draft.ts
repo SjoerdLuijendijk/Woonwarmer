@@ -111,6 +111,12 @@ export function toInvoiceLines(lines: DraftLine[]) {
   return { valid, invalid };
 }
 
+/** The stove an invoice is about: the one stove on its lines; null with no stove or several stoves. */
+export function invoiceStoveNumber(lines: Pick<DraftLine, "stoveNumber">[]) {
+  const stoves = new Set(lines.map((line) => line.stoveNumber).filter((number): number is number => number != null));
+  return stoves.size === 1 ? [...stoves][0] : null;
+}
+
 /** Units of a stove on the lines that came from it (stove line, quote line); incomplete quantities count as 0. */
 export function stoveUnits(lines: DraftLine[], stoveNumber: number | null) {
   if (stoveNumber === null) return 0;
