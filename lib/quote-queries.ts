@@ -77,16 +77,15 @@ export type QuoteStoveOption = {
   condition: Condition | null;
   madeToOrder: boolean;
   priceCents: number | null;
+  sold: boolean;
 };
 
-// Stoves on offer (not sold out), newest first.
-export async function listQuoteStoves(supabase: SupabaseClient): Promise<QuoteStoveOption[]> {
-  const { data, error } = await supabase
-    .from("stoves")
-    .select("number, brand, shop_name, stove_type, condition, made_to_order, price_cents")
-    .is("sold_at", null)
-    .order("number", { ascending: false })
-    .limit(2000);
+// Stoves on offer (not sold out), newest first. Invoices also list sold stoves: a stove is often
+// invoiced after it was marked sold.
+export async function listQuoteStoves(supabase: SupabaseClient, { includeSold = false } = {}): Promise<QuoteStoveOption[]> {
+  let query = supabase.from("stoves").select("number, brand, shop_name, stove_type, condition, made_to_order, price_cents, sold_at");
+  if (!includeSold) query = query.is("sold_at", null);
+  const { data, error } = await query.order("number", { ascending: false }).limit(2000);
   if (error) throw error;
   return data.map((stove) => ({
     number: stove.number,
@@ -96,5 +95,6 @@ export async function listQuoteStoves(supabase: SupabaseClient): Promise<QuoteSt
     condition: stove.condition,
     madeToOrder: stove.made_to_order,
     priceCents: stove.price_cents,
+    sold: stove.sold_at !== null,
   }));
 }

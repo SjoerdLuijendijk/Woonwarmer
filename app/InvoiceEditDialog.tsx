@@ -60,7 +60,7 @@ export default function InvoiceEditDialog({ invoiceId, invoice: initialInvoice, 
   useEffect(() => {
     if (!dialogRef.current?.open) dialogRef.current?.showModal();
     titleRef.current?.focus({ preventScroll: true });
-    getInvoiceSources(null).then((result) => {
+    getInvoiceSources().then((result) => {
       if (result.ok) setArticles(result.articles);
       else setError(result.error);
     });

@@ -18,8 +18,8 @@ const formatDate = (isoDate: string) => DATE_FORMAT.format(new Date(`${isoDate}T
 const STATUS_TONES: Record<QuoteStatus, StatusTone> = { draft: "cancelled", sent: "negotiating", accepted: "available", rejected: "sold" };
 
 // Customer and lines of a quote as a concept invoice; the address still has to be complete there.
+// The invoice is about the one stove on the lines (with several stoves it is a separate invoice).
 function invoicePrefill(quote: Quote): InvoicePrefill {
-  const stoves = [...new Set(quote.lines.map((line) => line.stove_number).filter((number): number is number => number !== null))];
   return {
     customer: {
       name: quote.customer.name,
@@ -38,8 +38,6 @@ function invoicePrefill(quote: Quote): InvoicePrefill {
       marginScheme: line.margin_scheme,
       stoveNumber: line.stove_number,
     })),
-    // An invoice records one stove; with several stoves (or none) it is a separate invoice.
-    stoveNumber: stoves.length === 1 ? stoves[0] : null,
   };
 }
 
