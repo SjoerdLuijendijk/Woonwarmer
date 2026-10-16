@@ -10,10 +10,10 @@ import { LISTING_CHANNELS, type ListingChannel, type Stove } from "../lib/stoves
 import ShowMoreRows from "./ShowMoreRows";
 import SortableHeader from "./SortableHeader";
 import StockPrintList from "./StockPrintList";
+import StockTabs from "./StockTabs";
 import StoveRow from "./StoveRow";
 import { useThumbnailBackfill } from "./useThumbnailBackfill";
 
-const KIND_LABELS: Record<Kind, string> = { used: "Gereviseerd", new: "Nieuw", order: "Op bestelling" };
 // For the empty message: "Geen gereviseerde kachels in het verkocht archief."
 const KIND_NOUNS: Record<Kind, string> = { used: "gereviseerde kachels", new: "nieuwe kachels", order: "kachels op bestelling" };
 const VIEW_PLACES: Record<StockView, string> = { available: "het aanbod", sold: "het verkocht archief" };
@@ -28,16 +28,25 @@ function matchesSearch(stove: Stove, query: string) {
 
 const inView = (stove: Stove, view: StockView) => (view === "sold") === Boolean(stove.soldAt);
 
+type StoveTableProps = {
+  stoves: Stove[];
+  view: StockView;
+  /** Articles for the "Losse artikelen" tab; only on the current stock. */
+  articleCount?: number;
+  /** The tab named in the URL, when coming from the articles tab. */
+  initialKind?: Kind | null;
+};
+
 // The current stock by default; the sold archive (opened from the account menu) shows sold stoves.
-export default function StoveTable({ stoves, view }: { stoves: Stove[]; view: StockView }) {
+export default function StoveTable({ stoves, view, articleCount, initialKind = null }: StoveTableProps) {
   const [search, setSearch] = useState("");
   // Null until a tab is clicked: the first tab with stoves is shown.
-  const [selectedKind, setKind] = useState<Kind | null>(null);
+  const [selectedKind, setKind] = useState<Kind | null>(initialKind);
   const [sort, setSort] = useState(DEFAULT_SORT);
   useThumbnailBackfill(stoves);
 
   // Made-to-order stoves never sell out, so the archive has no tab for them.
-  const kinds = (Object.keys(KIND_LABELS) as Kind[]).filter((key) => view === "available" || key !== "order");
+  const kinds = (["used", "new", "order"] as Kind[]).filter((key) => view === "available" || key !== "order");
   const stovesInView = useMemo(() => stoves.filter((stove) => inView(stove, view)), [stoves, view]);
   const kindCounts = useMemo(() => {
     const result: Record<Kind, number> = { used: 0, new: 0, order: 0 };
@@ -88,13 +97,14 @@ export default function StoveTable({ stoves, view }: { stoves: Stove[]; view: St
             </button>
           )}
         </div>
-        <div className="kind-tabs" role="group" aria-label="Soort kachel">
-          {kinds.map((key) => (
-            <button key={key} type="button" aria-pressed={kind === key} onClick={() => setKind(key)}>
-              {KIND_LABELS[key]} <span>{kindCounts[key]}</span>
-            </button>
-          ))}
-        </div>
+        <StockTabs
+          tabs={[
+            ...kinds.map((key) => ({ tab: key, count: kindCounts[key] })),
+            ...(view === "available" && articleCount !== undefined ? [{ tab: "articles" as const, count: articleCount }] : []),
+          ]}
+          active={kind}
+          onSelectKind={setKind}
+        />
         <input
           className="search-input"
           type="search"

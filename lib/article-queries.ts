@@ -27,3 +27,9 @@ export async function listArticles(supabase: SupabaseClient): Promise<Article[]>
   );
   return rows.map((row) => ({ ...toArticle(row), markupSalePriceExCents: markupPriceExCents(row.purchase_price_ex_cents, markupPct) }));
 }
+
+export async function countArticles(supabase: SupabaseClient): Promise<number> {
+  const { count, error } = await supabase.from("articles").select("id", { count: "exact", head: true });
+  if (error) throw error;
+  return count ?? 0;
+}

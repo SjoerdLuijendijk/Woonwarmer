@@ -1,27 +1,32 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import Link from "next/link";
+import { countArticles, getArticleMarkup, listArticles } from "../lib/article-queries";
 import { requireTeamMember } from "../lib/auth";
 import { isWideSection, parseAdminSection, type AdminSection } from "../lib/admin-sections";
+import { parseStockTab } from "../lib/stock-tabs";
 import type { StockView } from "../lib/stock-views";
 import { countOpenNotes, listNotes } from "../lib/stove-note-queries";
-import { getKnownBrands, getStoves } from "../lib/stove-queries";
+import { countStovesByKind, getKnownBrands, getStoves } from "../lib/stove-queries";
 import AccountMenu from "./AccountMenu";
 import AddStoveForm from "./AddStoveForm";
 import AdminPanel from "./AdminPanel";
 import BrandLogo from "./BrandLogo";
 import AgendaList from "./AgendaList";
+import ArticleList from "./ArticleList";
 import DeliveryList from "./DeliveryList";
+import StockTabs from "./StockTabs";
 import StoveNoteList from "./StoveNoteList";
 import StoveTable from "./StoveTable";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
-  searchParams: Promise<{ tab?: string | string[]; sectie?: string | string[]; weergave?: string | string[] }>;
+  searchParams: Promise<{ tab?: string | string[]; sectie?: string | string[]; weergave?: string | string[]; soort?: string | string[] }>;
 };
 
 export default async function Page({ searchParams }: PageProps) {
   const { supabase, user, isMember } = await requireTeamMember();
-  const { tab: requestedTab, sectie, weergave } = await searchParams;
+  const { tab: requestedTab, sectie, weergave, soort } = await searchParams;
   // "instellingen" is the tab's former name; its links opened the company details.
   const activeTab =
     requestedTab === "voorraad" || requestedTab === "notities" || requestedTab === "afleveren" || requestedTab === "agenda"
@@ -31,6 +36,8 @@ export default async function Page({ searchParams }: PageProps) {
         : "toevoegen";
   const adminSection: AdminSection = parseAdminSection(sectie) ?? (requestedTab === "instellingen" ? "bedrijf" : "facturen");
   const stockView: StockView = activeTab === "voorraad" && weergave === "verkocht" ? "sold" : "available";
+  // The articles are a tab of the current stock only; the archive holds sold stoves.
+  const stockTab = stockView === "available" ? parseStockTab(soort) : null;
   const menuItem = activeTab === "admin" ? adminSection : activeTab === "notities" || activeTab === "afleveren" || activeTab === "agenda" ? activeTab : stockView === "sold" ? "verkocht" : null;
   const noteCounts = isMember ? await countOpenNotes(supabase) : { open: 0, toDeliver: 0, today: 0 };
 
@@ -82,10 +89,31 @@ export default async function Page({ searchParams }: PageProps) {
           <StoveNoteList notes={await listNotes(supabase)} />
         ) : activeTab === "admin" ? (
           <AdminPanel supabase={supabase} section={adminSection} />
+        ) : stockTab === "articles" ? (
+          await renderStockArticles(supabase)
         ) : (
-          <StoveTable stoves={await getStoves(supabase)} view={stockView} />
+          <StoveTable
+            stoves={await getStoves(supabase)}
+            view={stockView}
+            articleCount={stockView === "available" ? await countArticles(supabase) : undefined}
+            initialKind={stockTab}
+          />
         )}
       </main>
     </div>
+  );
+}
+
+// Aanbod → Losse artikelen: the article list under the stock page's title and tabs.
+async function renderStockArticles(supabase: SupabaseClient) {
+  const [articles, markupPct, stoveCounts] = await Promise.all([listArticles(supabase), getArticleMarkup(supabase), countStovesByKind(supabase)]);
+  const tabs = (["used", "new", "order"] as const).map((tab) => ({ tab, count: stoveCounts[tab] }));
+  return (
+    <ArticleList
+      articles={articles}
+      markupPct={markupPct}
+      title="Aanbod"
+      tabs={<StockTabs tabs={[...tabs, { tab: "articles", count: articles.length }]} active="articles" />}
+    />
   );
 }

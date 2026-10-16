@@ -27,7 +27,16 @@ const money = (cents: number | null) => (cents === null ? "—" : formatPrice(ce
 // Settings → Artikelen: the parts used on quotes, grouped per category in the stock table layout.
 // Groups start collapsed; a search opens the groups with matches. Checkboxes per row and per group
 // select articles to delete together. Articles without a sale price show the price from the markup.
-export default function ArticleList({ articles, markupPct }: { articles: Article[]; markupPct: number }) {
+type ArticleListProps = {
+  articles: Article[];
+  markupPct: number;
+  /** "Artikelen" under settings; "Aanbod" when shown as a tab of the stock page. */
+  title?: string;
+  /** The stock page's tabs, below the title. */
+  tabs?: React.ReactNode;
+};
+
+export default function ArticleList({ articles, markupPct, title = "Artikelen", tabs }: ArticleListProps) {
   const [search, setSearch] = useState("");
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
   const [checkedIds, setCheckedIds] = useState<Set<number>>(new Set());
@@ -95,13 +104,14 @@ export default function ArticleList({ articles, markupPct }: { articles: Article
     <section aria-labelledby="articles-title">
       <div className="stock-toolbar">
         <div className="stock-title-row">
-          <h1 id="articles-title">Artikelen</h1>
+          <h1 id="articles-title">{title}</h1>
           <div className="toolbar-actions">
             <ArticleImport />
             <ArticleImageImport />
             <button type="button" className="sale-button" onClick={() => setEditing({ article: null })}>+ Nieuw artikel</button>
           </div>
         </div>
+        {tabs}
         <ArticleMarkupForm markupPct={markupPct} />
         <input
           className="search-input"

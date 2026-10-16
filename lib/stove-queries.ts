@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getOpenNotesByStove } from "./stove-note-queries";
 import { thumbnailPath } from "./photo-thumbnails";
 import { signPhotoUrls } from "./stove-photos";
+import type { StoveKind } from "./stove-display";
 import type { Stove, StoveDetails, StoveInvoice, StovePhoto } from "./stoves";
 
 const DETAIL_COLUMNS =
@@ -153,4 +154,16 @@ export async function getKnownBrands(supabase: SupabaseClient): Promise<string[]
   const { data, error } = await supabase.from("stoves").select("brand").limit(1000);
   if (error) throw error;
   return [...new Set(data.map((row) => row.brand))].sort((a, b) => a.localeCompare(b, "nl"));
+}
+
+// Stoves on offer per kind (see kindOf), for the tabs of the stock page when it shows the articles.
+export async function countStovesByKind(supabase: SupabaseClient): Promise<Record<StoveKind, number>> {
+  const onOffer = () => supabase.from("stoves").select("number", { count: "exact", head: true }).is("sold_at", null);
+  const [used, fresh, order] = await Promise.all([
+    onOffer().or("condition.is.null,condition.neq.new"),
+    onOffer().eq("condition", "new").eq("made_to_order", false),
+    onOffer().eq("condition", "new").eq("made_to_order", true),
+  ]);
+  for (const result of [used, fresh, order]) if (result.error) throw result.error;
+  return { used: used.count ?? 0, new: fresh.count ?? 0, order: order.count ?? 0 };
 }
