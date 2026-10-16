@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { selectAllPages } from "./all-pages";
 import { lineTotalCents, type VatRate } from "./invoice";
 import type { Quote, QuoteStatus, QuoteSummary } from "./quote";
 import type { Condition, StoveType } from "./stoves";
@@ -83,10 +84,11 @@ export type QuoteStoveOption = {
 // Stoves on offer (not sold out), newest first. Invoices also list sold stoves: a stove is often
 // invoiced after it was marked sold.
 export async function listQuoteStoves(supabase: SupabaseClient, { includeSold = false } = {}): Promise<QuoteStoveOption[]> {
-  let query = supabase.from("stoves").select("number, brand, shop_name, stove_type, condition, made_to_order, price_cents, sold_at");
-  if (!includeSold) query = query.is("sold_at", null);
-  const { data, error } = await query.order("number", { ascending: false }).limit(2000);
-  if (error) throw error;
+  const data = await selectAllPages((from, to) => {
+    let query = supabase.from("stoves").select("number, brand, shop_name, stove_type, condition, made_to_order, price_cents, sold_at");
+    if (!includeSold) query = query.is("sold_at", null);
+    return query.order("number", { ascending: false }).range(from, to);
+  });
   return data.map((stove) => ({
     number: stove.number,
     brand: stove.brand,

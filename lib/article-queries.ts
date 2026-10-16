@@ -1,16 +1,20 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { selectAllPages } from "./all-pages";
 import { ARTICLE_COLUMNS, toArticle, type Article, type ArticleRow } from "./articles";
 
-// All articles, by category and name.
+// All articles, by category and name (the id keeps the order unique across pages).
 export async function listArticles(supabase: SupabaseClient): Promise<Article[]> {
-  const { data, error } = await supabase
-    .from("articles")
-    .select(ARTICLE_COLUMNS)
-    .order("category", { ascending: true, nullsFirst: false })
-    .order("name", { ascending: true })
-    .order("diameter_mm", { ascending: true, nullsFirst: true })
-    .order("length_mm", { ascending: true, nullsFirst: true })
-    .limit(10000);
-  if (error) throw error;
-  return (data as ArticleRow[]).map(toArticle);
+  const rows = await selectAllPages<ArticleRow>((from, to) =>
+    supabase
+      .from("articles")
+      .select(ARTICLE_COLUMNS)
+      .order("category", { ascending: true, nullsFirst: false })
+      .order("name", { ascending: true })
+      .order("diameter_mm", { ascending: true, nullsFirst: true })
+      .order("length_mm", { ascending: true, nullsFirst: true })
+      .order("id", { ascending: true })
+      .range(from, to)
+      .overrideTypes<ArticleRow[], { merge: false }>(),
+  );
+  return rows.map(toArticle);
 }
