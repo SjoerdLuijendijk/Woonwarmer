@@ -104,10 +104,14 @@ Branch: `feature/edit-invoices`
   "Concept" label, a Concepten filter, and leaves them out of the amount still to be received.
   Decision (user): a sent invoice is final; this replaces this morning's "still editable" choice.
 
+- Released concepts, the payments dialog, line search and no empty first line. The 16 web shop
+  numbers that were not imported: 157–159, 165, 166 and 168–170 are orders of September to November
+  2025 invoiced on 2026-01-20; 163, 167 and 208 are cancelled orders; 186, 242, 243, 255 and 264
+  belong to no order in WooCommerce (not even the trash). Decision (user): orders from before 2026
+  stay out, even when invoiced in January 2026, so the import keeps reading orders from December 2025 on.
+
 ## Open items
 - Editable invoices: not checked in the browser by me after the production release.
-- Check the 16 web shop invoice numbers that were not imported (run the import again from
-  Instellingen → Catalogus importeren to see the reasons).
 - `create_invoice` (both versions) and `update_invoice` are no longer used by the app once the concept
   flow is live; drop them in a later migration.
 - Other unpaged lists (stock table `getStoves`, invoices, quotes) still stop at 1,000 rows; fine for now.
