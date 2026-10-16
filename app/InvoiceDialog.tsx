@@ -15,6 +15,7 @@ import { createInvoice, getInvoiceSources, getStoveStockForInvoice } from "./inv
 import InvoiceLinesEditor from "./InvoiceLinesEditor";
 import InvoiceStockOption, { stockDeduction } from "./InvoiceStockOption";
 import InvoiceTotalsSummary from "./InvoiceTotalsSummary";
+import { useLineImages, withLineImages } from "./useLineImages";
 
 const PREVIEW_DELAY_MS = 400;
 
@@ -55,6 +56,8 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
   const stoveNumber = stove?.number ?? invoiceStoveNumber(lines);
   const { valid, invalid } = useMemo(() => toInvoiceLines(lines), [lines]);
   const totals = invoiceTotals(valid);
+  const lineImages = useLineImages(valid);
+  const previewLines = useMemo(() => withLineImages(valid, lineImages), [valid, lineImages]);
   const units = stoveUnits(lines, stoveNumber);
   const deduction = stockDeduction(stock, units, takeFromStock);
 
@@ -100,7 +103,7 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
     if (!isOpen || !company || created) return;
     let cancelled = false;
     const timer = setTimeout(async () => {
-      const draft: Invoice = { number: null, issueDate: todayIsoDate(), stoveNumber, seller: company, customer: toCustomer(customer), lines: valid };
+      const draft: Invoice = { number: null, issueDate: todayIsoDate(), stoveNumber, seller: company, customer: toCustomer(customer), lines: previewLines };
       const { bytes } = await renderPdf(draft);
       if (cancelled) return;
       const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" }));
@@ -113,7 +116,7 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [isOpen, company, customer, valid, created, stoveNumber]);
+  }, [isOpen, company, customer, previewLines, created, stoveNumber]);
 
   function handleClose() {
     setIsOpen(false);

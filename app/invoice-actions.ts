@@ -8,6 +8,7 @@ import { requireTeamMember } from "../lib/auth";
 import type { Company, Invoice } from "../lib/invoice";
 import { getCompany, getInvoice, getInvoiceStock, type InvoiceStock } from "../lib/invoice-queries";
 import { parseCompany, parseInvoiceInput, parseStockDeduction } from "../lib/invoice-validation";
+import { lineImageUrls } from "../lib/line-images";
 import { listQuoteStoves, type QuoteStoveOption } from "../lib/quote-queries";
 import { syncStoveToShop } from "../lib/woocommerce/sync";
 import type { ActionResult } from "./actions";
@@ -61,6 +62,20 @@ export async function getStoveStockForInvoice(stoveNumber: number): Promise<Acti
   const { supabase, isMember } = await requireTeamMember();
   if (!isMember) return NO_ACCESS;
   return { ok: true, stock: await getInvoiceStock(supabase, stoveNumber) };
+}
+
+const MAX_IMAGE_SOURCES = 100;
+
+// Photos for the lines of a draft invoice or quote (the PDF preview), one per source in order.
+export async function getLineImageUrls(sources: unknown): Promise<ActionResult<{ urls: (string | null)[] }>> {
+  if (!Array.isArray(sources) || sources.length > MAX_IMAGE_SOURCES) return { ok: false, error: "Te veel regels." };
+  const clean = sources.map((source) => {
+    const { stove_number: stoveNumber, article_id: articleId } = (typeof source === "object" && source) || {};
+    return { stove_number: isPositiveId(stoveNumber) ? stoveNumber : null, article_id: isPositiveId(articleId) ? articleId : null };
+  });
+  const { supabase, isMember } = await requireTeamMember();
+  if (!isMember) return NO_ACCESS;
+  return { ok: true, urls: await lineImageUrls(supabase, clean) };
 }
 
 // stoveNumber null: a separate invoice that is not about a stove. stockDeduction: the units of the stove

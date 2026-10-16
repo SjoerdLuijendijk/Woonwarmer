@@ -60,6 +60,17 @@ Branch: `feature/edit-invoices`
 - User: invoices are not sent from the app yet, so they stay editable with the same number (no credit
   invoice). The invoice records who changed it last (`updated_at`, `updated_by`).
 
+- Branch `fix/invoice-preview-after-picker`: the invoice preview stopped ("Voorvertoning maken…")
+  after closing the article or stove list with "Klaar": React passed the nested dialog's close event to
+  the invoice dialog, which then stopped its preview. It now only reacts to closing itself, as the
+  quote and edit dialogs already did.
+- Branch `feature/images-on-invoices`: invoice and quote PDFs show a photo in front of lines that came
+  from an article (its photo) or a stove (its main photo, the small copy when there is one).
+  `invoice_lines` now store `stove_number` and `article_id` like quote lines
+  (`20261016210000_invoice_line_sources.sql`); `lib/line-images.ts` resolves the URLs, the dialogs ask
+  for them once per stove or article (`useLineImages`), and the PDF fetches them with an 8 s timeout
+  and leaves out any it cannot load. Invoices made before this have no photos.
+
 ## Open items
 - Editable invoices: not checked in the browser by me after the production release.
 - Other unpaged lists (stock table `getStoves`, invoices, quotes) still stop at 1,000 rows; fine for now.
@@ -80,6 +91,8 @@ Branch: `feature/edit-invoices`
   Protection, invoice amount format "€ -100,00".
 
 ## Manual steps and migrations
+- `20261016210000_invoice_line_sources.sql`: to be applied by the user before
+  `feature/images-on-invoices` is released (getInvoice reads the new columns).
 - `20261016190000_article_images.sql`: applied by the user and verified (bucket public, 1 MB, JPEG;
   insert and delete policies for team members).
 - `20261016170000_article_markup.sql`: applied by the user and verified (40%, RLS, policies, no anon access).

@@ -49,6 +49,9 @@ export function parseCompany(formData: FormData): Result<Company> {
   return { ok: true, value: value as Company };
 }
 
+// A stove or article reference on a line; anything else counts as none.
+const optionalId = (value: unknown) => (Number.isSafeInteger(value) && (value as number) > 0 ? (value as number) : null);
+
 /** A line price in cents; negative for a stove taken in part exchange. */
 export function isLinePrice(value: unknown): value is number {
   return Number.isInteger(value) && Math.abs(value as number) <= MAX_PRICE_CENTS;
@@ -77,7 +80,8 @@ export function parseInvoiceInput(input: { customer: unknown; lines: unknown }):
   const lines: InvoiceLine[] = [];
   for (const [index, rawLine] of input.lines.entries()) {
     const line = (typeof rawLine === "object" && rawLine) || {};
-    const { description, quantity, unit_price_cents: price, vat_rate: rate, margin_scheme: marginScheme } = line as Record<string, unknown>;
+    const { description, quantity, unit_price_cents: price, vat_rate: rate, margin_scheme: marginScheme, stove_number: stoveNumber, article_id: articleId } =
+      line as Record<string, unknown>;
     const cleanDescription = text(description, 200);
     const validQuantity = Number.isInteger(quantity) && (quantity as number) >= 1 && (quantity as number) <= MAX_QUANTITY;
     if (!cleanDescription || !validQuantity || !isLinePrice(price) || !isVatRate(rate) || typeof marginScheme !== "boolean") {
@@ -89,6 +93,8 @@ export function parseInvoiceInput(input: { customer: unknown; lines: unknown }):
       unit_price_cents: price,
       vat_rate: marginScheme ? 0 : rate,
       margin_scheme: marginScheme,
+      stove_number: optionalId(stoveNumber),
+      article_id: optionalId(articleId),
     });
   }
   return { ok: true, value: { customer: customer as Customer, lines } };

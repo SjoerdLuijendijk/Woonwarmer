@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { selectAllPages } from "./all-pages";
+import { lineImageUrls } from "./line-images";
 import { lineTotalCents, type VatRate } from "./invoice";
 import type { Quote, QuoteStatus, QuoteSummary } from "./quote";
 import type { Condition, StoveType } from "./stoves";
@@ -39,6 +40,8 @@ export async function getQuote(supabase: SupabaseClient, id: number): Promise<Qu
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
+  const lines = data.quote_lines as LineRow[];
+  const images = await lineImageUrls(supabase, lines);
 
   return {
     id: data.id,
@@ -55,7 +58,7 @@ export async function getQuote(supabase: SupabaseClient, id: number): Promise<Qu
       phone: data.customer_phone,
     },
     notes: data.notes,
-    lines: (data.quote_lines as LineRow[]).map(({ description, quantity, unit_price_cents, vat_rate, margin_scheme, stove_number, article_id }) => ({
+    lines: lines.map(({ description, quantity, unit_price_cents, vat_rate, margin_scheme, stove_number, article_id }, index) => ({
       description,
       quantity,
       unit_price_cents,
@@ -63,6 +66,7 @@ export async function getQuote(supabase: SupabaseClient, id: number): Promise<Qu
       margin_scheme,
       stove_number,
       article_id,
+      image_url: images[index],
     })),
   };
 }

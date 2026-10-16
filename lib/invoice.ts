@@ -40,7 +40,18 @@ export const MARGIN_SCHEME_NOTE = "Bijzondere regeling – gebruikte goederen";
  * Unit price in cents including VAT; negative for a stove taken in part exchange. A margin scheme
  * line (a used stove) shows no VAT and has vat_rate 0.
  */
-export type InvoiceLine = { description: string; quantity: number; unit_price_cents: number; vat_rate: VatRate; margin_scheme: boolean };
+export type InvoiceLine = {
+  description: string;
+  quantity: number;
+  unit_price_cents: number;
+  vat_rate: VatRate;
+  margin_scheme: boolean;
+  /** The stove or article the line came from, for its photo. */
+  stove_number?: number | null;
+  article_id?: number | null;
+  /** The photo shown on the PDF; filled in when the document is read, never stored. */
+  image_url?: string | null;
+};
 
 export type Invoice = {
   number: string | null; // null for a draft preview

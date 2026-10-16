@@ -1,4 +1,4 @@
-import { degrees, PDFDocument, rgb, StandardFonts, type PDFFont, type PDFPage } from "pdf-lib";
+import { degrees, PDFDocument, rgb, StandardFonts, type PDFFont, type PDFImage, type PDFPage } from "pdf-lib";
 import { invoiceTotals, lineTotalCents, MARGIN_SCHEME_NOTE, type Company, type Invoice, type InvoiceLine } from "./invoice";
 import { LOGO_PATHS, LOGO_VIEWBOX } from "./logo-paths";
 import type { Quote } from "./quote";
@@ -150,6 +150,31 @@ function footerLines(fonts: Fonts, footer: string | null) {
     .flatMap((paragraph) => wrap(fonts.regular, paragraph, 9, RIGHT - MARGIN));
 }
 
+const LINE_IMAGE_SIZE = 34;
+const LINE_IMAGE_GAP = 8;
+const IMAGE_TIMEOUT_MS = 8000;
+
+// The line photos, fetched once per URL. A photo that cannot be loaded or is not a JPEG or PNG is left
+// out, so the document (and its preview) is always made.
+async function embedLineImages(doc: PDFDocument, lines: InvoiceLine[]) {
+  const urls = [...new Set(lines.map((line) => line.image_url).filter((url): url is string => Boolean(url)))];
+  const images = new Map<string, PDFImage>();
+  await Promise.all(
+    urls.map(async (url) => {
+      try {
+        const response = await fetch(url, { signal: AbortSignal.timeout(IMAGE_TIMEOUT_MS) });
+        if (!response.ok) return;
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        if (bytes[0] === 0xff && bytes[1] === 0xd8) images.set(url, await doc.embedJpg(bytes));
+        else if (bytes[0] === 0x89 && bytes[1] === 0x50) images.set(url, await doc.embedPng(bytes));
+      } catch {
+        // Left out: no photo for this line.
+      }
+    }),
+  );
+  return images;
+}
+
 async function renderDocument(input: PdfDocument): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   const fonts = { regular: await doc.embedFont(StandardFonts.Helvetica), bold: await doc.embedFont(StandardFonts.HelveticaBold) };
@@ -214,19 +239,37 @@ async function renderDocument(input: PdfDocument): Promise<Uint8Array> {
   };
   tableHeader();
 
+  // With photos, every product line leaves room for one in front of its description.
+  const images = await embedLineImages(doc, input.lines);
+  const textX = MARGIN + 3 + (images.size > 0 ? LINE_IMAGE_SIZE + LINE_IMAGE_GAP : 0);
+
   for (const line of input.lines) {
     const description = markMargin && line.margin_scheme ? `${line.description} (marge)` : line.description;
-    const descriptionLines = wrap(fonts.regular, description, SIZE, COLUMN_X - MARGIN - 16);
-    const rowHeight = descriptionLines.length * LEADING + 10;
+    const descriptionLines = wrap(fonts.regular, description, SIZE, COLUMN_X - textX - 16);
+    const image = line.image_url ? images.get(line.image_url) : undefined;
+    const rowHeight = Math.max(descriptionLines.length * LEADING + 10, image ? LINE_IMAGE_SIZE + 10 : 0);
     if (w.y - rowHeight < w.bottom) {
       w.newPage();
       tableHeader();
     }
     const rowTop = w.y;
+    if (image) {
+      // Scaled to fit the square, centred in it, its top level with the row's top.
+      const scale = Math.min(LINE_IMAGE_SIZE / image.width, LINE_IMAGE_SIZE / image.height);
+      const width = image.width * scale;
+      const height = image.height * scale;
+      const boxTop = rowTop + LEADING - 6;
+      w.page.drawImage(image, {
+        x: MARGIN + 3 + (LINE_IMAGE_SIZE - width) / 2,
+        y: boxTop - LINE_IMAGE_SIZE + (LINE_IMAGE_SIZE - height) / 2,
+        width,
+        height,
+      });
+    }
     w.text(String(line.quantity), COLUMN_X);
     w.text(formatAmount(lineTotalCents(line)), VALUE_X);
     for (const text of descriptionLines) {
-      w.text(text, MARGIN + 3);
+      w.text(text, textX);
       w.y -= LEADING;
     }
     w.y = rowTop - rowHeight;

@@ -37,6 +37,7 @@ function invoicePrefill(quote: Quote): InvoicePrefill {
       vatRate: line.vat_rate,
       marginScheme: line.margin_scheme,
       stoveNumber: line.stove_number,
+      articleId: line.article_id,
     })),
   };
 }

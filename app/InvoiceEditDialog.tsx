@@ -10,6 +10,7 @@ import CustomerFields from "./CustomerFields";
 import { getInvoiceSources, updateInvoice } from "./invoice-actions";
 import InvoiceLinesEditor from "./InvoiceLinesEditor";
 import InvoiceTotalsSummary from "./InvoiceTotalsSummary";
+import { useLineImages, withLineImages } from "./useLineImages";
 import { usePdfPreview } from "./usePdfPreview";
 
 const DATE_FORMAT = new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
@@ -29,7 +30,12 @@ const toDraftLines = (invoice: Invoice): DraftLine[] =>
     price: formatPriceInput(line.unit_price_cents),
     vatRate: line.vat_rate,
     marginScheme: line.margin_scheme,
+    stoveNumber: line.stove_number ?? null,
+    articleId: line.article_id ?? null,
   }));
+
+// What is stored of a line: the photo is only looked up for the PDF.
+const storedLines = (lines: Invoice["lines"]) => lines.map(({ image_url: _image, ...line }) => line);
 
 // pdf-lib is only loaded once an invoice is opened.
 async function renderPdf(invoice: Invoice) {
@@ -68,10 +74,15 @@ export default function InvoiceEditDialog({ invoiceId, invoice: initialInvoice, 
 
   const { valid, invalid } = useMemo(() => toInvoiceLines(lines), [lines]);
   const totals = invoiceTotals(valid);
-  const draft = useMemo<Invoice>(() => ({ ...saved, customer: toCustomer(customer), lines: valid }), [saved, customer, valid]);
+  const lineImages = useLineImages(valid);
+  const draft = useMemo<Invoice>(
+    () => ({ ...saved, customer: toCustomer(customer), lines: withLineImages(valid, lineImages) }),
+    [saved, customer, valid, lineImages],
+  );
   const previewUrl = usePdfPreview(useCallback(async () => (await renderPdf(draft)).bytes, [draft]));
   // The download is the saved invoice, so it only matches the form once changes are saved.
-  const unsaved = JSON.stringify([draft.customer, draft.lines, invalid]) !== JSON.stringify([saved.customer, saved.lines, []]);
+  const unsaved =
+    JSON.stringify([draft.customer, storedLines(draft.lines), invalid]) !== JSON.stringify([saved.customer, storedLines(saved.lines), []]);
 
   function handleSave(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
