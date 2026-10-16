@@ -3100,3 +3100,163 @@ a {
     padding-left: 12px;
   }
 }
+
+/* Facturen: filter, amount still to be received, web shop label */
+
+.invoice-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin-bottom: 12px;
+}
+
+.invoice-open-total {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.invoice-open-total strong {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.source-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #f3edfa;
+  color: #6a3fa0;
+  font-size: 11.5px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.pill-detail {
+  font-weight: 500;
+}
+
+/* Payments dialog */
+
+.payments-dialog {
+  width: min(600px, calc(100vw - 32px));
+}
+
+.payments-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--background);
+}
+
+.payments-summary div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.payments-summary dt {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.payments-summary dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.payments-summary .payments-open dd {
+  font-size: 17px;
+}
+
+.payments-status {
+  cursor: default;
+}
+
+.payments-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.payments-list li {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) auto 32px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 15px;
+}
+
+.payments-date {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.payments-amount {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.payments-list .line-remove {
+  width: 30px;
+  height: 30px;
+  font-size: 18px;
+}
+
+.payments-form h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+.payments-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.payments-fields input,
+.payments-fields select {
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid var(--field-border);
+  border-radius: 8px;
+  background: var(--paper);
+  font-size: 15px;
+}
+
+.payments-note {
+  grid-column: 1 / -1;
+}
+
+.payments-form .button-row {
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+@media (max-width: 559px) {
+  .payments-summary,
+  .payments-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .payments-list li {
+    grid-template-columns: minmax(0, 1fr) auto 30px;
+  }
+
+  .payments-date {
+    grid-column: 1 / -1;
+  }
+}

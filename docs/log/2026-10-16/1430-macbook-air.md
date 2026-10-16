@@ -74,6 +74,17 @@ Branch: `feature/edit-invoices`
   for them once per stove or article (`useLineImages`), and the PDF fetches them with an 8 s timeout
   and leaves out any it cannot load. Invoices made before this have no photos.
 
+- Released line photos, the preview fix and the markup settings page; checked on the live site.
+- Branch `feature/invoice-payments-and-shop-import`: payments per invoice (`invoice_payments`: date,
+  amount, Contant/Pin/Bank/Webshop, note) and a "paid" mark (`invoices.paid_at`); the status (Open,
+  Deels betaald, Betaald) is worked out from both. Facturen shows the status (click: payments dialog),
+  a filter Alle/Openstaand and the amount still to be received. A one-off button imports the web
+  shop's invoices of 2026 (WooCommerce orders with a number from the PDF invoice plugin, statuses
+  completed, processing and on-hold) with their own numbers (up to 297) via `import_shop_invoice()`;
+  orders paid in the shop get one payment of the total. Web shop invoices are read-only and have no
+  PDF in the app (the shop's PDF is the original). Decision (user): one-off import, invoicing
+  continues in the app only; invoices can be marked paid with a button.
+
 ## Open items
 - Editable invoices: not checked in the browser by me after the production release.
 - Other unpaged lists (stock table `getStoves`, invoices, quotes) still stop at 1,000 rows; fine for now.
@@ -94,6 +105,8 @@ Branch: `feature/edit-invoices`
   Protection, invoice amount format "€ -100,00".
 
 ## Manual steps and migrations
+- `20261016230000_invoice_payments_and_shop_invoices.sql`: applied by the user and checked with a
+  verification query.
 - `20261016210000_invoice_line_sources.sql`: applied by the user and verified (both columns, both
   functions store the line's stove and article).
 - `20261016190000_article_images.sql`: applied by the user and verified (bucket public, 1 MB, JPEG;

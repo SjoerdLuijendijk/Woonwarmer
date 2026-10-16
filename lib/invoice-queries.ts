@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { selectAllPages } from "./all-pages";
 import type { Company, Invoice } from "./invoice";
+import { paymentStatus, type InvoicePayment, type InvoicePaymentMethod, type PaymentStatus } from "./invoice-payments";
 import { lineImageUrls } from "./line-images";
 
 const COMPANY_COLUMNS = "name, address, postal_code, city, kvk_number, vat_number, iban, email, phone, payment_term_days, hourly_rate_ex_cents, invoice_footer";
@@ -76,22 +78,62 @@ export type InvoiceSummary = {
   stoveNumber: number | null;
   customerName: string;
   totalCents: number;
+  /** Invoices of the web shop (before the app took over) are read-only. */
+  source: "app" | "webshop";
+  paidCents: number;
+  markedPaid: boolean;
+  status: PaymentStatus;
+  payments: InvoicePayment[];
 };
 
-// All invoices, newest first. Invoices outlive their stove, so this does not depend on the stoves table.
-export async function listInvoices(supabase: SupabaseClient): Promise<InvoiceSummary[]> {
-  const { data, error } = await supabase
-    .from("invoices")
-    .select("id, invoice_number, issue_date, stove_number, customer_name, invoice_lines (quantity, unit_price_cents)")
-    .order("id", { ascending: false });
-  if (error) throw error;
+type InvoiceListRow = {
+  id: number;
+  invoice_number: string;
+  issue_date: string;
+  stove_number: number | null;
+  customer_name: string;
+  source: "app" | "webshop";
+  paid_at: string | null;
+  invoice_lines: { quantity: number; unit_price_cents: number }[];
+  invoice_payments: { id: number; paid_on: string; amount_cents: number; method: InvoicePaymentMethod; note: string | null }[];
+};
 
-  return data.map((invoice) => ({
-    id: invoice.id,
-    number: invoice.invoice_number,
-    issueDate: invoice.issue_date,
-    stoveNumber: invoice.stove_number,
-    customerName: invoice.customer_name,
-    totalCents: invoice.invoice_lines.reduce((sum, line) => sum + line.quantity * line.unit_price_cents, 0),
-  }));
+// All invoices, highest number first, with their payments. Invoices outlive their stove, so this
+// does not depend on the stoves table.
+export async function listInvoices(supabase: SupabaseClient): Promise<InvoiceSummary[]> {
+  const rows = await selectAllPages<InvoiceListRow>((from, to) =>
+    supabase
+      .from("invoices")
+      .select(
+        "id, invoice_number, issue_date, stove_number, customer_name, source, paid_at, invoice_lines (quantity, unit_price_cents), invoice_payments (id, paid_on, amount_cents, method, note)",
+      )
+      .order("sequence_number", { ascending: false })
+      .order("paid_on", { referencedTable: "invoice_payments", ascending: true })
+      .range(from, to)
+      .overrideTypes<InvoiceListRow[], { merge: false }>(),
+  );
+
+  return rows.map((invoice) => {
+    const totalCents = invoice.invoice_lines.reduce((sum, line) => sum + line.quantity * line.unit_price_cents, 0);
+    const paidCents = invoice.invoice_payments.reduce((sum, payment) => sum + payment.amount_cents, 0);
+    return {
+      id: invoice.id,
+      number: invoice.invoice_number,
+      issueDate: invoice.issue_date,
+      stoveNumber: invoice.stove_number,
+      customerName: invoice.customer_name,
+      totalCents,
+      source: invoice.source,
+      paidCents,
+      markedPaid: invoice.paid_at !== null,
+      status: paymentStatus(totalCents, paidCents, invoice.paid_at !== null),
+      payments: invoice.invoice_payments.map((payment) => ({
+        id: payment.id,
+        paidOn: payment.paid_on,
+        amountCents: payment.amount_cents,
+        method: payment.method,
+        note: payment.note,
+      })),
+    };
+  });
 }

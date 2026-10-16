@@ -6,6 +6,7 @@ import { getAdPrompt } from "../lib/marketplace-ad-store";
 import AdPromptForm from "./AdPromptForm";
 import ArticleMarkupForm from "./ArticleMarkupForm";
 import CatalogImport from "./CatalogImport";
+import ShopInvoiceImport from "./ShopInvoiceImport";
 import ShopResync from "./ShopResync";
 import CompanySettingsForm from "./CompanySettingsForm";
 import { getArticleMarkup, listArticles } from "../lib/article-queries";
@@ -24,15 +25,20 @@ export default async function AdminPanel({ supabase, section }: { supabase: Supa
   if (section === "offertes") return <QuoteList quotes={await listQuotes(supabase)} />;
   // The invoices are a wide table, laid out like the stock page.
   if (section === "facturen") {
+    const invoices = await listInvoices(supabase);
     return (
       <section aria-labelledby="admin-title">
         <div className="stock-toolbar">
           <div className="stock-title-row">
             <h1 id="admin-title">Facturen</h1>
-            <InvoiceDialog stove={null} />
+            <div className="toolbar-actions">
+              {/* A one-off import: gone once the web shop's invoices are in the app. */}
+              {!invoices.some(({ source }) => source === "webshop") && <ShopInvoiceImport />}
+              <InvoiceDialog stove={null} />
+            </div>
           </div>
         </div>
-        <InvoiceList invoices={await listInvoices(supabase)} />
+        <InvoiceList invoices={invoices} />
       </section>
     );
   }
