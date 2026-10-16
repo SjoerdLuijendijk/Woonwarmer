@@ -91,8 +91,8 @@ Branch: `feature/edit-invoices`
   Protection, invoice amount format "€ -100,00".
 
 ## Manual steps and migrations
-- `20261016210000_invoice_line_sources.sql`: to be applied by the user before
-  `feature/images-on-invoices` is released (getInvoice reads the new columns).
+- `20261016210000_invoice_line_sources.sql`: applied by the user and verified (both columns, both
+  functions store the line's stove and article).
 - `20261016190000_article_images.sql`: applied by the user and verified (bucket public, 1 MB, JPEG;
   insert and delete policies for team members).
 - `20261016170000_article_markup.sql`: applied by the user and verified (40%, RLS, policies, no anon access).
