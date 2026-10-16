@@ -46,7 +46,8 @@ export async function saveArticleMarkup(value: unknown): Promise<ActionResult> {
 }
 
 // Sets the photo of the article with this SKU (Artikelen → Afbeeldingen importeren: the file is
-// named after the SKU). Articles that share a photo share one stored file.
+// named after the SKU). A "/" cannot be in a file name, so "0502_31001" also finds "0502/31001" when
+// no article has the name exactly. Articles that share a photo share one stored file.
 export async function importArticleImage(formData: FormData): Promise<ActionResult> {
   const sku = formData.get("sku");
   const file = formData.get("file");
@@ -57,9 +58,12 @@ export async function importArticleImage(formData: FormData): Promise<ActionResu
   const { supabase, isMember } = await requireTeamMember();
   if (!isMember) return NO_ACCESS;
 
-  const { data: article, error: findError } = await supabase.from("articles").select("id").eq("sku", sku.trim()).maybeSingle();
+  const exact = sku.trim();
+  const candidates = [...new Set([exact, exact.replaceAll("_", "/")])];
+  const { data: found, error: findError } = await supabase.from("articles").select("id, sku").in("sku", candidates);
   if (findError) return FAILED;
-  if (!article) return { ok: false, error: `Geen artikel met nummer ${sku.trim()}.` };
+  const article = found.find((row) => row.sku === exact) ?? found[0];
+  if (!article) return { ok: false, error: `Geen artikel met nummer ${exact}.` };
 
   let imageUrl: string;
   try {
