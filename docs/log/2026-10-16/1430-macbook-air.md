@@ -24,6 +24,16 @@ Branch: `feature/edit-invoices`
   sold stoves too; quotes do not). With exactly one stove on the lines the invoice is about that stove
   (`invoiceStoveNumber`), shown under the title, and the stock option loads for it
   (`getStoveStockForInvoice`). Quotes now also show the Op bestelling group.
+- Released stove picking to staging and production.
+- HAVÉ flue assortment: read the dealer portal (mijn.haveverwarming.nl, Bestellen → afvoermateriaal gas,
+  hout, pellet and flexibel) in the user's logged-in Chrome session: 1,741 articles in 97 groups with
+  the net purchase price excl. VAT, no sale price (the team sets the margin). At the user's request the
+  231 existing articles were deleted in the app first, then the six CSV parts (max. 300 rows each)
+  were imported through Artikelen → CSV importeren. The CSV files are in ~/Downloads/HAVE-afvoermateriaal
+  on this Mac (not in the repository: they contain purchase prices).
+- Branch `fix/list-beyond-1000-rows`: Supabase returns at most 1,000 rows per request, so the article
+  list stopped at 1,000. `selectAllPages` (lib/all-pages.ts) reads articles and the invoice/quote stove
+  list page by page.
 
 ## Decisions
 - User: invoices are not sent from the app yet, so they stay editable with the same number (no credit
@@ -31,6 +41,9 @@ Branch: `feature/edit-invoices`
 
 ## Open items
 - Editable invoices: not checked in the browser by me after the production release.
+- Other unpaged lists (stock table `getStoves`, invoices, quotes) still stop at 1,000 rows; fine for now.
+- Articles have no sale price yet: a margin per category would save entering 1,741 prices by hand.
+- Article images: the portal's images only load when logged in; storing them in the app is a separate task.
 - Dialog layout: check in the real app (create invoice, edit invoice, quote), including the
   "＋ Nieuwe regel" menu inside the dialog on Safari and on a phone. Long descriptions are still cut
   off in the line field (full text on hover).
