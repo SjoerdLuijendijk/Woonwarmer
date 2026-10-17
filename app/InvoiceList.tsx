@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import type { Invoice } from "../lib/invoice";
 import { PAYMENT_STATUS_LABELS, type PaymentStatus } from "../lib/invoice-payments";
+import { invoiceOverview } from "../lib/invoice-overview";
 import type { InvoiceSummary } from "../lib/invoice-queries";
 import { formatPrice } from "../lib/price";
 import { onRowClick } from "../lib/row-click";
@@ -32,10 +33,7 @@ export default function InvoiceList({ invoices }: { invoices: InvoiceSummary[] }
   const pending = downloading || opening;
   // Looked up on every render, so the dialog shows the payments as refreshed after a change.
   const paymentsInvoice = invoices.find(({ id }) => id === paymentsId) ?? null;
-  // Concepts are not sent yet, so nothing is owed on them.
-  const drafts = invoices.filter((invoice) => invoice.draft);
-  const unpaid = invoices.filter((invoice) => !invoice.draft && invoice.status !== "paid");
-  const openCents = unpaid.reduce((sum, invoice) => sum + Math.max(0, invoice.totalCents - invoice.paidCents), 0);
+  const { drafts, unpaid, openCents } = invoiceOverview(invoices);
   const shown = filter === "open" ? unpaid : filter === "draft" ? drafts : invoices;
 
   const label = (invoice: InvoiceSummary) => (invoice.number ? `Factuur ${invoice.number}` : "Conceptfactuur");

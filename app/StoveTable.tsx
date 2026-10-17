@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 import { formatPrice } from "../lib/price";
+import { ROUTES } from "../lib/navigation";
 import { STOCK_VIEW_HREFS, type StockView } from "../lib/stock-views";
 import { kindOf, unitsOf, type StoveKind as Kind } from "../lib/stove-display";
 import { DEFAULT_SORT, nextSort, sortStoves, type SortKey } from "../lib/stove-sort";
@@ -37,7 +38,7 @@ type StoveTableProps = {
   initialKind?: Kind | null;
 };
 
-// The current stock by default; the sold archive (opened from the account menu) shows sold stoves.
+// The current stock by default; the sold archive (Voorraad → Verkocht archief) shows sold stoves.
 export default function StoveTable({ stoves, view, articleCount, initialKind = null }: StoveTableProps) {
   const [search, setSearch] = useState("");
   // Null until a tab is clicked: the first tab with stoves is shown.
@@ -118,7 +119,7 @@ export default function StoveTable({ stoves, view, articleCount, initialKind = n
       {stoves.length === 0 ? (
         <div className="notice">
           <strong>Nog geen kachels</strong>
-          <p>Voeg de eerste toe via <Link href="/">Kachel toevoegen</Link>.</p>
+          <p>Voeg de eerste toe via <Link href={ROUTES.addStove}>Kachel toevoegen</Link>.</p>
         </div>
       ) : visible.length === 0 ? (
         <div className="notice">

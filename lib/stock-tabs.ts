@@ -1,3 +1,4 @@
+import { ROUTES } from "./navigation";
 import type { StoveKind } from "./stove-display";
 
 // The tabs of the stock page (Aanbod): the three kinds of stove, and the separate articles (flue
@@ -14,7 +15,7 @@ export const STOCK_TAB_LABELS: Record<StockTab, string> = {
 const SLUGS: Record<StockTab, string> = { used: "gereviseerd", new: "nieuw", order: "op-bestelling", articles: "artikelen" };
 
 export function stockTabHref(tab: StockTab) {
-  return `/?tab=voorraad&soort=${SLUGS[tab]}`;
+  return `${ROUTES.stock}?soort=${SLUGS[tab]}`;
 }
 
 export function parseStockTab(value: string | string[] | undefined): StockTab | null {

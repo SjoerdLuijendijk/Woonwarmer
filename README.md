@@ -42,6 +42,23 @@ allows access only to signed-in users whose e-mail is in `team_members`. After c
 number stays fixed; team members can edit the other details. Photos are served through
 short-lived signed URLs.
 
+## Navigation
+
+After signing in, Home (`/`) shows the day at a glance: quick actions (add a stove, new quote, new
+invoice), today's appointments, stoves to deliver and negotiations, the stock per kind, and the money
+still to be received. The header has four groups; the pages of the current group are in the bar
+below it (`lib/navigation.ts`):
+
+- Voorraad: Aanbod (`/voorraad`, tabs with `?soort=`) and Verkocht archief (`/voorraad/verkocht`)
+- Verkoop: Agenda, Af te leveren, In onderhandeling, Offertes and Facturen (`/verkoop/...`)
+- Beheer: Artikelen, Opslag losse artikelen, Catalogus importeren, Bedrijfsgegevens and Prompt
+  instellen (`/beheer/...`)
+
+"Kachel toevoegen" (`/kachel-toevoegen`) is a button in the header; the account menu only signs out.
+The pages share `app/(app)/layout.tsx`, which checks the team list once per request. The former
+addresses (`/?tab=...&sectie=...`) redirect to the new pages. Server Actions refresh the whole app
+with `revalidatePath("/", "layout")`.
+
 ## Product details
 
 Besides the required details (brand, condition, dimensions, flue outlet and diameter, price;
@@ -76,10 +93,10 @@ onderhandeling"; its notes are only listed under In onderhandeling and Af te lev
 pill of a used stove opens a list (Te koop, In onderhandeling, Verkocht, Afgeleverd); choosing negotiating or sold opens the note dialog for the details, the others apply
 straight away. Selling a new stove takes one unit from its stock. A sale is either delivered (or picked up) straight away, which closes the note
 at once, or still to be delivered: those stoves are listed with their agreements under "Af te
-leveren" in the account menu until they are marked "Afgeleverd". Selling straight away without any
+leveren" (Verkoop) until they are marked "Afgeleverd". Selling straight away without any
 details only lowers the stock. Other open notes show
-as labels with their own status list; the account menu has "In onderhandeling" with the negotiations and
-closed notes (stoves to deliver are only under "Af te leveren"). "Agenda" in the account menu lists
+as labels with their own status list; Verkoop → "In onderhandeling" has the negotiations and
+closed notes (stoves to deliver are only under "Af te leveren"). Verkoop → "Agenda" lists
 the appointments of open notes per day from today on, with open appointments whose day has passed
 on top; the menu shows how many are planned for today.
 
@@ -116,7 +133,7 @@ taken in part exchange is a line with a negative price (migration `2026101321000
 calls the `create_invoice()` database function, which stores the invoice and its lines in one
 transaction and assigns the next number of one continuous series that carries on from the
 invoices made before the app (298, 299, ...; migration `20261013200000_continuous_invoice_numbers.sql`).
-The seller details from Admin → Bedrijfsgegevens, including the small print at the bottom of the
+The seller details from Beheer → Bedrijfsgegevens, including the small print at the bottom of the
 invoice ("Voettekst"), are copied onto the invoice.
 
 An invoice for a stove can take the sold units from its stock in the same transaction: the units on
@@ -133,7 +150,7 @@ page makes an invoice without a stove (migration `20261001170000_allow_invoices_
 
 ## Quotes and articles
 
-Account menu → Offertes lists the quotes (O2026-0001, ...; own numbering per year). A quote has a
+Verkoop → Offertes lists the quotes (O2026-0001, ...; own numbering per year). A quote has a
 customer (only the name is required), lines, a validity date (30 days by default) and an optional
 note, with a live PDF preview. Lines come from a stove on offer, an article, or are typed by hand;
 "Opslaan in artikelen" adds a typed line to the article list. Quotes stay editable and have a status
@@ -141,7 +158,8 @@ note, with a live PDF preview. Lines come from a stove on offer, an article, or 
 a concept invoice with its customer and lines. `save_quote()` stores a quote with its lines in one
 transaction.
 
-Instellingen → Artikelen holds the parts (flue pipes, roof outlets, accessories). "CSV importeren"
+Beheer → Artikelen holds the parts (flue pipes, roof outlets, accessories); the same list is the
+"Losse artikelen" tab of Aanbod, without the imports. "CSV importeren"
 reads the supplier CSV (`;`-separated; columns such as categorie, artikelnaam, diameter_mm, sku,
 verkoopprijs_ex_btw, btw_pct). The SKU is the key: an article with the same SKU is updated, empty
 cells keep the stored value, and rows without a SKU or with a SKU that occurs twice in the file are
@@ -149,7 +167,7 @@ skipped and reported. Article prices are excluding VAT; quote lines use prices i
 show the logo top left (`lib/logo-paths.ts`, generated from `public/woonwarmer-logo.svg`).
 Migration: `20261001190000_create_articles_and_quotes.sql`.
 
-Instellingen → Catalogus importeren imports the product export (CSV) of HAVÉ Verwarming as
+Beheer → Catalogus importeren imports the product export (CSV) of HAVÉ Verwarming as
 made-to-order stoves; see `docs/supplier-catalog.md`. Migration: `20261013170000_add_stove_shop_name_and_supplier.sql`.
 
 "＋ Montage" in the quote and invoice dialogs adds a line "Montage (per uur)" at the hourly rate set
@@ -170,7 +188,7 @@ There is no automatic sync with Marktplaats or 2dehands: posting and updating th
 requires a Marktplaats Pro (business) account and a certified API partner. Ads are copied from the
 app and updated by hand on both sites.
 
-The prompt is editable under Admin → Advertentie (`ad_settings`, team members only); the
+The prompt is editable under Beheer → Prompt instellen (`ad_settings`, team members only); the
 built-in default in `lib/ad-prompt.ts` is used until it is saved. Fixed guard rules (use only the
 given facts, plain text) are always appended in `lib/marketplace-ad.ts`. Changing the prompt or the
 company details does not regenerate existing ads.

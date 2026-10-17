@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { ROUTES } from "../lib/navigation";
 import { MAX_PHOTOS_PER_UPLOAD } from "../lib/stoves";
 import { photosToFormData } from "../lib/photo-form-data";
 import { addStove } from "./actions";
@@ -64,7 +65,7 @@ export default function AddStoveForm({ brands }: { brands: string[] }) {
         {saved.warning && <p className="field-error">{saved.warning}</p>}
         <div className="button-row">
           <button className="primary-button" type="button" onClick={() => setSaved(null)}>Nog een kachel toevoegen</button>
-          <Link className="secondary-button" href="/?tab=voorraad">Naar voorraad</Link>
+          <Link className="secondary-button" href={ROUTES.stock}>Naar voorraad</Link>
         </div>
       </section>
     );

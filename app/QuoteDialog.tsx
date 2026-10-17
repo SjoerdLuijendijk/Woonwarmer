@@ -6,6 +6,7 @@ import type { Article } from "../lib/articles";
 import { downloadFile } from "../lib/download-file";
 import { invoiceTotals, MAX_QUANTITY, type Company } from "../lib/invoice";
 import { addDraftLine, draftLineVat, EMPTY_CUSTOMER, toInvoiceLines, type DraftCustomer, type DraftLine } from "../lib/invoice-draft";
+import { ROUTES } from "../lib/navigation";
 import { formatPriceInput, parsePriceToCents } from "../lib/price";
 import { DEFAULT_VALID_DAYS, MAX_NOTES_LENGTH, type Quote, type QuoteCustomer, type QuoteLine } from "../lib/quote";
 import type { QuoteStoveOption } from "../lib/quote-queries";
@@ -227,7 +228,7 @@ export default function QuoteDialog({ quote: initialQuote, onClose }: QuoteDialo
       {company === null ? (
         <div className="notice">
           <strong>Bedrijfsgegevens ontbreken</strong>
-          <p>Vul eerst je bedrijfsgegevens in bij <Link href="/?tab=admin&sectie=bedrijf">Instellingen → Bedrijfsgegevens</Link>; die komen op de offerte.</p>
+          <p>Vul eerst je bedrijfsgegevens in bij <Link href={ROUTES.company}>Beheer → Bedrijfsgegevens</Link>; die komen op de offerte.</p>
         </div>
       ) : (
         <div className="invoice-layout">

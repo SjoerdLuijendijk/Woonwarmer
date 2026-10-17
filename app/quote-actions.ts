@@ -93,7 +93,7 @@ export async function saveQuote(id: number | null, input: unknown): Promise<Acti
 
   const quote = await getQuote(supabase, data.id);
   if (!quote) return FAILED;
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return { ok: true, quote };
 }
 
@@ -105,7 +105,7 @@ export async function setQuoteStatus(id: number, status: QuoteStatus): Promise<A
   const { data, error } = await supabase.from("quotes").update({ status, updated_at: new Date().toISOString() }).eq("id", id).select("id");
   if (error) return FAILED;
   if (data.length === 0) return { ok: false, error: "Deze offerte bestaat niet meer." };
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 
@@ -116,6 +116,6 @@ export async function deleteQuote(id: number): Promise<ActionResult> {
 
   const { error } = await supabase.from("quotes").delete().eq("id", id);
   if (error) return FAILED;
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return { ok: true };
 }
