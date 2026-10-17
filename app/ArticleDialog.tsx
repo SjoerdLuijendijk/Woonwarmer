@@ -34,6 +34,9 @@ export default function ArticleDialog({ article, categories, markupPct, onClose 
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const [error, setError] = useState<string | null>(null);
+  // The photo follows the web address field; a broken address hides it until the address changes.
+  const [imageUrl, setImageUrl] = useState(article?.imageUrl ?? "");
+  const [brokenImageUrl, setBrokenImageUrl] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -59,6 +62,9 @@ export default function ArticleDialog({ article, categories, markupPct, onClose 
         <h2 id="article-title" ref={titleRef} tabIndex={-1} className="dialog-title">
           {article ? "Artikel bewerken" : "Nieuw artikel"}
         </h2>
+        {imageUrl && imageUrl !== brokenImageUrl && (
+          <img className="article-dialog-photo" src={imageUrl} alt={article?.name ?? "Artikelfoto"} onError={() => setBrokenImageUrl(imageUrl)} />
+        )}
         {/* The article number is only the key for the CSV import and is not shown. */}
         <input type="hidden" name="sku" value={article?.sku ?? ""} />
         <fieldset className="invoice-section">
@@ -116,7 +122,7 @@ export default function ArticleDialog({ article, categories, markupPct, onClose 
             </label>
             <label className="stacked-label customer-wide">
               <span>Afbeelding (webadres, optioneel)</span>
-              <input name="imageUrl" type="url" maxLength={1000} defaultValue={article?.imageUrl ?? ""} />
+              <input name="imageUrl" type="url" maxLength={1000} value={imageUrl} onChange={(event) => setImageUrl(event.target.value.trim())} />
             </label>
           </div>
         </fieldset>

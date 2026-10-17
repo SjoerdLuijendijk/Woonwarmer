@@ -2939,6 +2939,16 @@ a {
   object-fit: contain;
 }
 
+.article-dialog-photo {
+  display: block;
+  width: 160px;
+  height: 160px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  object-fit: contain;
+}
+
 .article-name {
   display: inline-flex;
   align-items: center;
