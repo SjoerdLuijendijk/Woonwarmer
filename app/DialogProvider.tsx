@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useBackdropClose } from "./useBackdropClose";
 
 type ConfirmOptions = {
   title: string;
@@ -41,6 +42,7 @@ export function useDialog() {
 export default function DialogProvider({ children }: { children: React.ReactNode }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [request, setRequest] = useState<DialogRequest | null>(null);
+  useBackdropClose();
 
   useEffect(() => {
     if (request && !dialogRef.current?.open) dialogRef.current?.showModal();
