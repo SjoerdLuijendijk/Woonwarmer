@@ -1,6 +1,6 @@
 # Supplier catalogue import (HAVÉ Verwarming)
 
-Instellingen → Catalogus importeren reads the product export (CSV) of HAVÉ Verwarming and stores
+Beheer → Catalogus importeren reads the product export (CSV) of HAVÉ Verwarming and stores
 the wanted products as new, made-to-order stoves ("Op bestelling"). They then reach the web shop
 like any other stove (`docs/woocommerce-sync.md`). Migration: `20261013170000_add_stove_shop_name_and_supplier.sql`.
 

@@ -1,7 +1,9 @@
-// The stock page shows the current stock by default; the sold archive is opened from the account menu.
+import { ROUTES } from "./navigation";
+
+// The current stock (Voorraad → Aanbod) and the sold archive (Voorraad → Verkocht archief).
 export type StockView = "available" | "sold";
 
 export const STOCK_VIEW_HREFS: Record<StockView, string> = {
-  available: "/?tab=voorraad",
-  sold: "/?tab=voorraad&weergave=verkocht",
+  available: ROUTES.stock,
+  sold: ROUTES.sold,
 };

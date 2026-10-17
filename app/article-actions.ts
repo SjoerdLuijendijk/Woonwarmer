@@ -41,7 +41,7 @@ export async function saveArticleMarkup(value: unknown): Promise<ActionResult> {
     console.error("Saving article markup failed", { code: error?.code });
     return FAILED;
   }
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 
@@ -96,7 +96,7 @@ export async function saveArticle(id: number | null, formData: FormData): Promis
   if (error) return FAILED;
   if (data.length === 0) return { ok: false, error: "Dit artikel bestaat niet meer." };
 
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 
@@ -107,7 +107,7 @@ export async function deleteArticle(id: number): Promise<ActionResult> {
 
   const { error } = await supabase.from("articles").delete().eq("id", id);
   if (error) return FAILED;
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 
@@ -120,7 +120,7 @@ export async function deleteArticles(ids: number[]): Promise<ActionResult> {
 
   const { error } = await supabase.from("articles").delete().in("id", ids);
   if (error) return FAILED;
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 
@@ -182,6 +182,6 @@ export async function importArticles(csvText: string): Promise<ActionResult<{ re
   const { error } = await supabase.from("articles").upsert(upserts, { onConflict: "sku" });
   if (error) return FAILED;
 
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return { ok: true, report };
 }

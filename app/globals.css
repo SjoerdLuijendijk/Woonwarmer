@@ -116,55 +116,115 @@ a {
   height: 96px;
 }
 
-/* Two equal navigation buttons: the current page filled in the brand colour, the other outlined. */
-.tabs {
+/* Main menu: four groups in the header, the current one filled in the brand colour. */
+.brand-link {
+  display: inline-flex;
+  border-radius: 8px;
+}
+
+.main-nav {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   order: 3;
   width: 100%;
 }
 
-.tabs a {
+.main-nav a {
   display: inline-flex;
   flex: 1;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   min-height: var(--control-height);
-  padding: 0 18px;
-  border: 1px solid var(--field-border);
+  padding: 0 14px;
   border-radius: var(--radius);
-  background: var(--paper);
   color: var(--ink);
   font-size: 15px;
   font-weight: 600;
   text-decoration: none;
   white-space: nowrap;
-  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+  transition: background-color 0.15s, color 0.15s;
 }
 
-.tabs a:hover {
-  border-color: var(--accent);
-  background: #fdf8f6;
+.main-nav a:hover {
+  background: var(--track);
   color: var(--accent-dark);
 }
 
-.tabs a[aria-current="page"] {
-  border-color: var(--accent);
+.main-nav a[aria-current="page"] {
   background: var(--accent);
   color: white;
 }
 
-.tabs a[aria-current="page"]:hover {
-  border-color: var(--accent-dark);
-  background: var(--accent-dark);
-  color: white;
+.main-nav a[aria-current="page"] .count-badge {
+  background: white;
+  color: var(--accent);
 }
 
-/* Profile button top right with the management pages and sign-out in a dropdown. */
+.main-nav .count-badge {
+  margin-left: 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.header-add {
+  gap: 6px;
+  min-height: var(--control-height);
+  padding: 0 16px;
+  white-space: nowrap;
+}
+
+/* The pages of the current group, in a bar below the header; it scrolls sideways on a phone. */
+.sub-nav {
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.sub-nav ul {
+  display: flex;
+  gap: 4px;
+  margin: 0;
+  padding: 0 16px;
+  overflow-x: auto;
+  list-style: none;
+  scrollbar-width: none;
+}
+
+.sub-nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-bottom: 3px solid transparent;
+  color: var(--muted);
+  font-size: 14.5px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.sub-nav a:hover {
+  color: var(--ink);
+}
+
+.sub-nav a[aria-current="page"] {
+  border-bottom-color: var(--accent);
+  color: var(--accent-dark);
+}
+
+.sub-nav .count-badge {
+  margin-left: 0;
+}
+
+/* Profile button top right with the signed-in address and sign-out in a dropdown. */
 .account-menu {
   position: relative;
-  margin-left: auto;
 }
 
 .account-button {
@@ -223,13 +283,6 @@ a {
   white-space: nowrap;
 }
 
-.account-dropdown ul {
-  margin: 0;
-  padding: 6px 0;
-  list-style: none;
-}
-
-.account-dropdown a,
 .account-signout button {
   display: flex;
   align-items: center;
@@ -246,51 +299,8 @@ a {
   text-decoration: none;
 }
 
-.account-dropdown a:hover,
 .account-signout button:hover {
   background: var(--row-hover);
-}
-
-.account-dropdown a[aria-current="page"] {
-  color: var(--accent);
-  font-weight: 600;
-}
-
-.account-submenu-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  min-height: 40px;
-  padding: 8px 10px;
-  border: 0;
-  border-radius: 8px;
-  background: none;
-  color: var(--ink);
-  font-size: 14px;
-  font-weight: 500;
-  text-align: left;
-}
-
-.account-submenu-toggle:hover {
-  background: var(--row-hover);
-}
-
-.account-submenu-toggle svg {
-  color: var(--muted);
-  transition: transform 0.15s;
-}
-
-.account-submenu-toggle[aria-expanded="true"] svg {
-  transform: rotate(90deg);
-}
-
-.account-dropdown .account-submenu {
-  padding: 0 0 0 12px;
-}
-
-.account-submenu[hidden] {
-  display: none;
 }
 
 .account-signout {
@@ -316,19 +326,29 @@ a {
   max-width: none;
 }
 
+/* Forms and settings keep the former page width inside the full-width layout. */
+.page-narrow {
+  max-width: 1168px;
+  margin-inline: auto;
+}
+
 @media (min-width: 720px) {
   /* Full width, so the logo sits top left and lines up with the stock table. */
   .site-header {
     padding-inline: 24px;
   }
 
-  .tabs {
+  .main-nav {
     order: 0;
     width: auto;
   }
 
-  .tabs a {
+  .main-nav a {
     flex: none;
+  }
+
+  .sub-nav ul {
+    padding-inline: 24px;
   }
 }
 
@@ -2051,8 +2071,22 @@ a {
     height: 56px;
   }
 
-  .tabs a {
+  .main-nav a {
     padding: 0 8px;
+  }
+
+  /* Only the plus on a phone; the label stays for screen readers. */
+  .header-add {
+    padding: 0 12px;
+  }
+
+  .header-add span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   .page-main {
@@ -2288,6 +2322,7 @@ a {
   }
 
   .site-header,
+  .sub-nav,
   .page-main > section > :not(.print-stock) {
     display: none !important;
   }
@@ -2633,10 +2668,6 @@ a {
   font-size: 12px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-}
-
-.account-button .count-badge {
-  margin: 0 2px 0 4px;
 }
 
 /* Negotiations and deliveries (account menu), in the stock table layout */
@@ -3419,4 +3450,133 @@ a {
 .danger-text {
   margin-right: auto;
   color: var(--sold);
+}
+
+/* Home: quick actions and the day at a glance in tiles that open the pages behind them. */
+
+.home {
+  max-width: 1168px;
+  margin-inline: auto;
+}
+
+.home-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+}
+
+.home-date {
+  margin: 0;
+  font-size: 15px;
+}
+
+.home-date::first-letter {
+  text-transform: uppercase;
+}
+
+.home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 18px 0 8px;
+}
+
+.home-action {
+  gap: 8px;
+  min-height: var(--control-height);
+  padding: 0 16px;
+}
+
+.home-action svg {
+  color: var(--accent);
+}
+
+.home-section {
+  margin-top: 28px;
+}
+
+.home-section h2 {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.home-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.home-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+  box-shadow: var(--card-shadow);
+  color: var(--ink);
+  text-decoration: none;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.home-tile:hover {
+  border-color: var(--field-border-hover);
+  transform: translateY(-1px);
+}
+
+.home-tile--highlight {
+  border-color: var(--accent);
+  box-shadow: inset 4px 0 0 var(--accent), var(--card-shadow);
+}
+
+.home-tile-label {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.home-tile-value {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.home-tile-detail {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+@media (max-width: 559px) {
+  .home-tiles {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .home-tile {
+    padding: 12px 14px;
+  }
+
+  .home-tile-value {
+    font-size: 24px;
+  }
+
+  .home-action {
+    flex: 1 1 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-tile {
+    transition: none;
+  }
+
+  .home-tile:hover {
+    transform: none;
+  }
 }

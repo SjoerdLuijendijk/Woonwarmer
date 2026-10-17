@@ -57,14 +57,14 @@ export async function saveStoveNote(stoveNumber: number, noteId: number | null, 
     const delivered = await supabase.from("stove_notes").update({ status: "done" }).eq("id", data[0].id);
     if (delivered.error) {
       after(() => syncStoveToShop(supabase, stoveNumber));
-      revalidatePath("/");
+      revalidatePath("/", "layout");
       return { ok: false, error: "De verkoop is opgeslagen, maar niet als afgeleverd. Zet hem via de status op Afgeleverd." };
     }
   }
 
   // Selling changes the stock, which the web shop shows.
   if (note.status === "sold") after(() => syncStoveToShop(supabase, stoveNumber));
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 
@@ -81,6 +81,6 @@ export async function closeStoveNote(noteId: number, status: "done" | "cancelled
   if (error) return { ok: false, error: "Er ging iets mis. Probeer het opnieuw." };
   if (data.length === 0) return { ok: false, error: "Deze notitie bestaat niet meer." };
 
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return { ok: true };
 }

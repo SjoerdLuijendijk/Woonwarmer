@@ -27,7 +27,7 @@ export async function addInvoicePayment(invoiceId: number, input: unknown): Prom
     console.error("Adding invoice payment failed", { code: error.code });
     return error.code === "23503" ? { ok: false, error: "Factuur niet gevonden." } : FAILED;
   }
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 
@@ -37,7 +37,7 @@ export async function deleteInvoicePayment(paymentId: number): Promise<ActionRes
   if (!isMember) return NO_ACCESS;
   const { error } = await supabase.from("invoice_payments").delete().eq("id", paymentId);
   if (error) return FAILED;
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 
@@ -52,7 +52,7 @@ export async function setInvoicePaid(invoiceId: number, paid: unknown): Promise<
     .eq("id", invoiceId)
     .select("id");
   if (error || data.length === 0) return FAILED;
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 
@@ -101,6 +101,6 @@ export async function importShopInvoices(): Promise<ActionResult<{ report: ShopI
     if (data === null) report.existing += 1;
     else report.imported += 1;
   }
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return { ok: true, report };
 }

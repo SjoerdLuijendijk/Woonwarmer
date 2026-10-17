@@ -83,6 +83,6 @@ export async function saveAdPrompt(formData: FormData): Promise<ActionResult> {
     console.error("Saving ad prompt failed", { code: error.code });
     return FAILED;
   }
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return { ok: true };
 }

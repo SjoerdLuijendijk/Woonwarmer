@@ -33,9 +33,11 @@ type ArticleListProps = {
   title?: string;
   /** The stock page's tabs, below the title. */
   tabs?: React.ReactNode;
+  /** The CSV and image imports; only under settings, not on the stock page. */
+  showImports?: boolean;
 };
 
-export default function ArticleList({ articles, markupPct, title = "Artikelen", tabs }: ArticleListProps) {
+export default function ArticleList({ articles, markupPct, title = "Artikelen", tabs, showImports = true }: ArticleListProps) {
   const [search, setSearch] = useState("");
   const [openGroups, setOpenGroups] = useState<Set<string>>(new Set());
   const [checkedIds, setCheckedIds] = useState<Set<number>>(new Set());
@@ -105,8 +107,12 @@ export default function ArticleList({ articles, markupPct, title = "Artikelen", 
         <div className="stock-title-row">
           <h1 id="articles-title">{title}</h1>
           <div className="toolbar-actions">
-            <ArticleImport />
-            <ArticleImageImport />
+            {showImports && (
+              <>
+                <ArticleImport />
+                <ArticleImageImport />
+              </>
+            )}
             <button type="button" className="sale-button" onClick={() => setEditing({ article: null })}>+ Nieuw artikel</button>
           </div>
         </div>
@@ -143,7 +149,11 @@ export default function ArticleList({ articles, markupPct, title = "Artikelen", 
 
       {visibleGroups.length === 0 ? (
         <div className="notice">
-          <p>{articles.length === 0 ? "Nog geen artikelen. Importeer een CSV of voeg een artikel toe." : "Geen artikelen gevonden."}</p>
+          <p>
+            {articles.length > 0
+              ? "Geen artikelen gevonden."
+              : `Nog geen artikelen. ${showImports ? "Importeer een CSV of voeg" : "Voeg"} een artikel toe.`}
+          </p>
         </div>
       ) : (
         <div className="table-wrap" aria-busy={pending}>

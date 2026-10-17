@@ -7,6 +7,7 @@ import type { Article } from "../lib/articles";
 import { invoiceTotals, type Company, type Invoice } from "../lib/invoice";
 import { addDraftLine, EMPTY_CUSTOMER, invoiceStoveNumber, stoveLine, stoveUnits, todayIsoDate, toCustomer, toInvoiceLines, type DraftCustomer, type DraftLine } from "../lib/invoice-draft";
 import type { InvoiceStock } from "../lib/invoice-queries";
+import { ROUTES } from "../lib/navigation";
 import type { QuoteStoveOption } from "../lib/quote-queries";
 import type { Stove } from "../lib/stoves";
 import CustomerFields from "./CustomerFields";
@@ -33,9 +34,13 @@ type InvoiceDialogProps = {
   stove: Stove | null;
   /** Loads customer and lines when the dialog opens; the button then reads "Factuur maken". */
   loadPrefill?: () => Promise<InvoicePrefill | null>;
+  /** The button of a separate invoice; the home page shows it as a quick action. */
+  trigger?: { label: React.ReactNode; className: string };
 };
 
-export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps) {
+const SEPARATE_INVOICE_TRIGGER = { label: "+ Losse factuur", className: "sale-button" };
+
+export default function InvoiceDialog({ stove, loadPrefill, trigger = SEPARATE_INVOICE_TRIGGER }: InvoiceDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [company, setCompany] = useState<Company | null | undefined>(undefined);
@@ -204,8 +209,8 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
           Factuur maken
         </button>
       ) : (
-        <button type="button" className="sale-button" onClick={open}>
-          + Losse factuur
+        <button type="button" className={trigger.className} onClick={open}>
+          {trigger.label}
         </button>
       )}
       <dialog
@@ -249,7 +254,7 @@ export default function InvoiceDialog({ stove, loadPrefill }: InvoiceDialogProps
         ) : company === null ? (
           <div className="notice">
             <strong>Bedrijfsgegevens ontbreken</strong>
-            <p>Vul eerst je bedrijfsgegevens in bij <Link href="/?tab=admin&sectie=bedrijf">Bedrijfsgegevens</Link> (menu rechtsboven); die komen op de factuur.</p>
+            <p>Vul eerst je bedrijfsgegevens in bij <Link href={ROUTES.company}>Beheer → Bedrijfsgegevens</Link>; die komen op de factuur.</p>
           </div>
         ) : (
           <div className="invoice-layout">

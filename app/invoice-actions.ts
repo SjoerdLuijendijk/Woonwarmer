@@ -36,7 +36,7 @@ export async function saveCompanySettings(formData: FormData): Promise<ActionRes
     console.error("Saving company settings failed", { code: error.code });
     return FAILED;
   }
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 
@@ -114,7 +114,7 @@ export async function saveDraftInvoice(
   const id = data as number;
   const invoice = await getInvoice(supabase, id);
   if (!invoice) return FAILED;
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return { ok: true, id, invoice };
 }
 
@@ -151,7 +151,7 @@ export async function finalizeInvoice(invoiceId: number, stockDeduction: unknown
   }
   const invoice = await getInvoice(supabase, invoiceId);
   if (!invoice) return FAILED;
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return { ok: true, invoice };
 }
 
@@ -164,7 +164,7 @@ export async function deleteDraftInvoice(invoiceId: number): Promise<ActionResul
     if (error.message.includes("not a draft")) return { ok: false, error: "Een verstuurde factuur kan niet worden verwijderd." };
     return FAILED;
   }
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 

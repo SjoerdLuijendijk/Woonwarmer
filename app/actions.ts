@@ -68,7 +68,7 @@ export async function addStove(formData: FormData): Promise<ActionResult<{ numbe
 
   // Runs once the response is sent, so after storing the photos below.
   refreshAdThenSyncShopLater(supabase, stove.number);
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   try {
     await storePhotos(supabase, stove.number, photos);
   } catch {
@@ -95,7 +95,7 @@ export async function updateStove(stoveNumber: number, formData: FormData): Prom
 
   // The stored ad would otherwise show outdated details such as the old price.
   refreshAdThenSyncShopLater(supabase, stoveNumber);
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 
@@ -110,7 +110,7 @@ export async function addStovePhotos(stoveNumber: number, formData: FormData): P
   } catch (error) {
     return { ok: false, error: errorMessage(error) };
   } finally {
-    revalidatePath("/");
+    revalidatePath("/", "layout");
     syncShopLater(supabase, stoveNumber);
   }
   return { ok: true };
@@ -135,7 +135,7 @@ export async function adjustStoveStock(stoveNumber: number, delta: -1 | 1): Prom
   if (data === null) return { ok: false, error: "De voorraad van deze kachel kan niet worden aangepast." };
 
   syncShopLater(supabase, stoveNumber);
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 
@@ -158,7 +158,7 @@ export async function makeStoveMadeToOrder(stoveNumber: number): Promise<ActionR
 
   // The stored ad mentions the availability.
   refreshAdThenSyncShopLater(supabase, stoveNumber);
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 
@@ -180,11 +180,11 @@ export async function setStoveListed(stoveNumber: number, channel: ListingChanne
   if (channel === "shop") syncShopLater(supabase, stoveNumber);
   // The database keeps sold-out stoves unlisted, so the tick did not stick.
   if (listed && data[0].stock_quantity === 0) {
-    revalidatePath("/");
+    revalidatePath("/", "layout");
     return { ok: false, error: "Een verkochte kachel kan niet worden aangeboden." };
   }
 
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 
@@ -204,7 +204,7 @@ export async function deleteStovePhoto(photoId: number): Promise<ActionResult> {
   if (deleteError) return { ok: false, error: errorMessage(deleteError) };
 
   syncShopLater(supabase, photo.stove_number);
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 
@@ -218,7 +218,7 @@ export async function deleteStoveAction(stoveNumber: number, fromShop: boolean):
 
   try {
     const result = await deleteStove(supabase, stoveNumber, { fromShop });
-    revalidatePath("/");
+    revalidatePath("/", "layout");
     return result;
   } catch (error) {
     console.error("Deleting stove failed", { stoveNumber, code: (error as { code?: unknown })?.code });
@@ -234,7 +234,7 @@ export async function retryShopSync(stoveNumber: number): Promise<ActionResult> 
   if (!isMember) return NO_ACCESS;
 
   const error = await syncStoveToShop(supabase, stoveNumber);
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   return error ? { ok: false, error } : { ok: true };
 }
 

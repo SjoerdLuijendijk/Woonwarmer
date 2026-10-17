@@ -53,7 +53,7 @@ export async function importCatalogProductAction(value: unknown, listInShop: unk
     console.error("Catalogue import failed", { code: (error as { code?: unknown })?.code });
     return { ok: false, error: "Opslaan is mislukt. Probeer het opnieuw." };
   }
-  revalidatePath("/");
+  revalidatePath("/", "layout");
 
   // Awaited instead of after(): the browser waits for it, so the shop gets one product at a time.
   const shopError = await syncStoveToShop(supabase, result.number);

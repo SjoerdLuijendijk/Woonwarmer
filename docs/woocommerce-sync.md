@@ -97,7 +97,7 @@ Marktplaats. Every night at 04:00 UTC (`vercel.json`, Production only) Vercel Cr
 app marker and sets only their stock fields back (`manage_stock`, `stock_quantity: 1`, `backorders`)
 through `products/batch`, 25 at a time. Only made-to-order products allow backorders, and stoves
 unticked in the app are drafts, so stoves the shop really holds and unlisted stoves are never touched.
-The app database is not used. Admin → Catalogus importeren → "Webshop bijwerken" runs the same thing
+The app database is not used. Beheer → Catalogus importeren → "Webshop bijwerken" runs the same thing
 right away.
 
 The route needs `CRON_SECRET` in Vercel (Production); without it every call is refused. The proxy
