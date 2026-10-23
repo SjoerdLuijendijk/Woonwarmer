@@ -34,7 +34,7 @@ type InvoiceDialogProps = {
   stove: Stove | null;
   /** Loads customer and lines when the dialog opens; the button then reads "Factuur maken". */
   loadPrefill?: () => Promise<InvoicePrefill | null>;
-  /** The button of a separate invoice; the home page shows it as a quick action. */
+  /** The button of a separate invoice; the home page shows it as a large button. */
   trigger?: { label: React.ReactNode; className: string };
 };
 

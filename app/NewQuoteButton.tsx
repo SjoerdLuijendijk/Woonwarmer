@@ -3,7 +3,7 @@
 import { useState } from "react";
 import QuoteDialog from "./QuoteDialog";
 
-// Opens a new quote from anywhere, such as the quick actions on the home page.
+// Opens a new quote from anywhere, such as the buttons on the home page.
 export default function NewQuoteButton({ className, children }: { className: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
