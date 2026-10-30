@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { selectAllPages } from "./all-pages";
+import { lineCodes } from "./line-codes";
 import { lineImageUrls } from "./line-images";
 import { lineTotalCents, type VatRate } from "./invoice";
 import type { Quote, QuoteStatus, QuoteSummary } from "./quote";
@@ -41,7 +42,7 @@ export async function getQuote(supabase: SupabaseClient, id: number): Promise<Qu
   if (error) throw error;
   if (!data) return null;
   const lines = data.quote_lines as LineRow[];
-  const images = await lineImageUrls(supabase, lines);
+  const [images, codes] = await Promise.all([lineImageUrls(supabase, lines), lineCodes(supabase, lines)]);
 
   return {
     id: data.id,
@@ -67,6 +68,7 @@ export async function getQuote(supabase: SupabaseClient, id: number): Promise<Qu
       stove_number,
       article_id,
       image_url: images[index],
+      code: codes[index],
     })),
   };
 }
@@ -83,13 +85,15 @@ export type QuoteStoveOption = {
   madeToOrder: boolean;
   priceCents: number | null;
   sold: boolean;
+  /** The supplier's article number of a stove imported from a catalogue. */
+  supplierSku: string | null;
 };
 
 // Stoves on offer (not sold out), newest first. Invoices also list sold stoves: a stove is often
 // invoiced after it was marked sold.
 export async function listQuoteStoves(supabase: SupabaseClient, { includeSold = false } = {}): Promise<QuoteStoveOption[]> {
   const data = await selectAllPages((from, to) => {
-    let query = supabase.from("stoves").select("number, brand, shop_name, stove_type, condition, made_to_order, price_cents, sold_at");
+    let query = supabase.from("stoves").select("number, brand, shop_name, stove_type, condition, made_to_order, price_cents, sold_at, supplier_sku");
     if (!includeSold) query = query.is("sold_at", null);
     return query.order("number", { ascending: false }).range(from, to);
   });
@@ -102,5 +106,6 @@ export async function listQuoteStoves(supabase: SupabaseClient, { includeSold = 
     madeToOrder: stove.made_to_order,
     priceCents: stove.price_cents,
     sold: stove.sold_at !== null,
+    supplierSku: stove.supplier_sku,
   }));
 }

@@ -56,10 +56,28 @@ const toDraftLines = (quote: Quote): DraftLine[] =>
     articleId: line.article_id,
   }));
 
+type LineCodeOf = (line: DraftLine) => string | null;
+
+// The article code of a line from the loaded sources: the article's SKU or the stove's supplier SKU,
+// as the saved quote reads it (lib/line-codes.ts). The saved lines cover stoves that are no longer on
+// offer, such as a sold one.
+function lineCodeLookup(savedLines: QuoteLine[], articles: Article[], stoves: QuoteStoveOption[]): LineCodeOf {
+  const articleCodes = new Map<number, string | null>();
+  const stoveCodes = new Map<number, string | null>();
+  for (const line of savedLines) {
+    if (line.article_id != null) articleCodes.set(line.article_id, line.code ?? null);
+    else if (line.stove_number != null) stoveCodes.set(line.stove_number, line.code ?? null);
+  }
+  for (const article of articles) articleCodes.set(article.id, article.sku);
+  for (const stove of stoves) stoveCodes.set(stove.number, stove.supplierSku);
+  return (line) =>
+    (line.articleId != null && articleCodes.get(line.articleId)) || (line.stoveNumber != null && stoveCodes.get(line.stoveNumber)) || null;
+}
+
 // Every line with a description shows in the preview, also while its price or quantity is missing
 // (as 0 and 1), so a picked article without a price is visible straight away. Saving still requires
 // complete lines.
-function previewLines(lines: DraftLine[]): QuoteLine[] {
+function previewLines(lines: DraftLine[], codeOf: LineCodeOf): QuoteLine[] {
   return lines
     .filter((line) => line.description.trim())
     .map((line) => {
@@ -71,6 +89,7 @@ function previewLines(lines: DraftLine[]): QuoteLine[] {
         ...draftLineVat(line),
         stove_number: line.stoveNumber ?? null,
         article_id: line.articleId ?? null,
+        code: codeOf(line),
       };
     });
 }
@@ -118,7 +137,8 @@ export default function QuoteDialog({ quote: initialQuote, onClose }: QuoteDialo
   const { valid, invalid } = useMemo(() => toInvoiceLines(lines), [lines]);
   const totals = invoiceTotals(valid);
   const company = sources?.company;
-  const quoteLines = useMemo(() => previewLines(lines), [lines]);
+  const codeOf = useMemo(() => lineCodeLookup(saved?.lines ?? [], sources?.articles ?? [], sources?.stoves ?? []), [saved, sources]);
+  const quoteLines = useMemo(() => previewLines(lines, codeOf), [lines, codeOf]);
   const lineImages = useLineImages(quoteLines);
 
   const draftQuote = useMemo<Quote>(

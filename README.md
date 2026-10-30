@@ -153,7 +153,10 @@ page makes an invoice without a stove (migration `20261001170000_allow_invoices_
 Verkoop → Offertes lists the quotes (O2026-0001, ...; own numbering per year). A quote has a
 customer (only the name is required), lines, a validity date (30 days by default) and an optional
 note, with a live PDF preview. Lines come from a stove on offer, an article, or are typed by hand;
-"Opslaan in artikelen" adds a typed line to the article list. Quotes stay editable and have a status
+"Opslaan in artikelen" adds a typed line to the article list. The quote PDF has an "Artikelcode"
+column, for placing the order, when a line has a code: the article's SKU, or the supplier's article
+number of a stove imported from a catalogue (read when the quote is shown, not stored on the line;
+`lib/line-codes.ts`). Quotes stay editable and have a status
 (Concept, Verstuurd, Geaccepteerd, Afgewezen); an accepted quote offers "Factuur maken", which opens
 a concept invoice with its customer and lines. `save_quote()` stores a quote with its lines in one
 transaction.
