@@ -18,6 +18,8 @@ const LEADING = 13.5;
 // The right-hand column (seller, document details, quantity) and the price column next to it.
 const COLUMN_X = 350;
 const VALUE_X = 448;
+// The article code column in the lines table, only when a line has a code.
+const CODE_X = 262;
 
 const AMOUNT_FORMAT = new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR", minimumFractionDigits: 2 });
 const DATE_FORMAT = new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
@@ -66,6 +68,21 @@ function wrap(font: PDFFont, value: string, size: number, maxWidth: number) {
   }
   if (current) lines.push(current);
   return lines;
+}
+
+// Like wrap, but a word wider than maxWidth (a long article code) is broken over several lines.
+function wrapCode(font: PDFFont, value: string, size: number, maxWidth: number) {
+  return wrap(font, value, size, maxWidth).flatMap((line) => {
+    const parts: string[] = [];
+    let current = "";
+    for (const char of line) {
+      if (current && font.widthOfTextAtSize(current + char, size) > maxWidth) {
+        parts.push(current);
+        current = char;
+      } else current += char;
+    }
+    return current ? [...parts, current] : parts;
+  });
 }
 
 type TextOptions = { size?: number; bold?: boolean; color?: typeof INK; align?: "left" | "right" | "center" };
@@ -230,9 +247,11 @@ async function renderDocument(input: PdfDocument): Promise<Uint8Array> {
   const marginNote = markMargin ? `Regels met (marge): ${MARGIN_SCHEME_NOTE}; hierover geen btw.` : `${MARGIN_SCHEME_NOTE}.`;
 
   // Lines table with a black header bar, repeated on every page.
+  const hasCodes = input.lines.some((line) => line.code);
   const tableHeader = () => {
     w.page.drawRectangle({ x: MARGIN, y: w.y - 7, width: RIGHT - MARGIN, height: 21, color: INK });
     w.text("Product", MARGIN + 3, { bold: true, color: rgb(1, 1, 1) });
+    if (hasCodes) w.text("Artikelcode", CODE_X, { bold: true, color: rgb(1, 1, 1) });
     w.text("Hoeveelheid", COLUMN_X, { bold: true, color: rgb(1, 1, 1) });
     w.text("Prijs", VALUE_X, { bold: true, color: rgb(1, 1, 1) });
     w.y -= 26;
@@ -245,9 +264,11 @@ async function renderDocument(input: PdfDocument): Promise<Uint8Array> {
 
   for (const line of input.lines) {
     const description = markMargin && line.margin_scheme ? `${line.description} (marge)` : line.description;
-    const descriptionLines = wrap(fonts.regular, description, SIZE, COLUMN_X - textX - 16);
+    const descriptionLines = wrap(fonts.regular, description, SIZE, (hasCodes ? CODE_X : COLUMN_X) - textX - 16);
+    const codeLines = line.code ? wrapCode(fonts.regular, line.code, SIZE, COLUMN_X - CODE_X - 10) : [];
     const image = line.image_url ? images.get(line.image_url) : undefined;
-    const rowHeight = Math.max(descriptionLines.length * LEADING + 10, image ? LINE_IMAGE_SIZE + 10 : 0);
+    const textHeight = Math.max(descriptionLines.length, codeLines.length) * LEADING + 10;
+    const rowHeight = Math.max(textHeight, image ? LINE_IMAGE_SIZE + 10 : 0);
     if (w.y - rowHeight < w.bottom) {
       w.newPage();
       tableHeader();
@@ -268,6 +289,11 @@ async function renderDocument(input: PdfDocument): Promise<Uint8Array> {
     }
     w.text(String(line.quantity), COLUMN_X);
     w.text(formatAmount(lineTotalCents(line)), VALUE_X);
+    for (const text of codeLines) {
+      w.text(text, CODE_X);
+      w.y -= LEADING;
+    }
+    w.y = rowTop;
     for (const text of descriptionLines) {
       w.text(text, textX);
       w.y -= LEADING;

@@ -51,6 +51,8 @@ export type InvoiceLine = {
   article_id?: number | null;
   /** The photo shown on the PDF; filled in when the document is read, never stored. */
   image_url?: string | null;
+  /** The article code shown on a quote PDF (article SKU or supplier SKU); filled in when read, never stored. */
+  code?: string | null;
 };
 
 export type Invoice = {
