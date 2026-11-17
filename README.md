@@ -143,7 +143,11 @@ this with a tick box, off by default when a sale placed with "Verkocht" is still
 because that sale already took a unit. Made-to-order and sold-out stoves are not changed; at stock 0
 the stove is sold, unlisted and taken offline in the web shop.
 
-Invoices cannot be changed or deleted after creation; corrections need a credit invoice. PDFs are
+A sent invoice cannot be changed, but an invoice of the app can be deleted from its dialog, with its
+lines and payments (migration `20261117100000_delete_sent_invoices.sql`). Deleting the invoice with
+the last number frees that number for the next invoice; deleting an older one leaves a gap in the
+series. The units it took from the stock can be put back; the stove's listings are not ticked again.
+Web shop invoices cannot be deleted. PDFs are
 generated in the browser with `pdf-lib` and can be downloaded again from the inventory or from
 Facturen, which lists all invoices, including those of deleted stoves. "+ Losse factuur" on that
 page makes an invoice without a stove (migration `20261001170000_allow_invoices_without_stove.sql`).

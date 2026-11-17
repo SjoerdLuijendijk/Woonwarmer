@@ -155,14 +155,29 @@ export async function finalizeInvoice(invoiceId: number, stockDeduction: unknown
   return { ok: true, invoice };
 }
 
-export async function deleteDraftInvoice(invoiceId: number): Promise<ActionResult> {
-  if (!isPositiveId(invoiceId)) return { ok: false, error: "Onbekende factuur." };
+// Deletes a concept or a sent invoice of the app, with its lines and payments. restoreStock: the units a
+// sent invoice took from the stock of its stove go back.
+export async function deleteInvoice(invoiceId: number, restoreStock: boolean): Promise<ActionResult> {
+  if (!isPositiveId(invoiceId) || typeof restoreStock !== "boolean") return { ok: false, error: "Onbekende factuur." };
   const { supabase, isMember } = await requireTeamMember();
   if (!isMember) return NO_ACCESS;
-  const { error } = await supabase.rpc("delete_draft_invoice", { p_invoice_id: invoiceId });
+
+  const { data: invoice, error: findError } = await supabase.from("invoices").select("stove_number").eq("id", invoiceId).maybeSingle();
+  if (findError) return FAILED;
+  if (!invoice) return { ok: false, error: "Deze factuur bestaat niet meer." };
+
+  const { data: stockRestored, error } = await supabase.rpc("delete_invoice", { p_invoice_id: invoiceId, p_restore_stock: restoreStock });
   if (error) {
-    if (error.message.includes("not a draft")) return { ok: false, error: "Een verstuurde factuur kan niet worden verwijderd." };
+    console.error("Deleting invoice failed", { code: error.code });
+    if (error.message.includes("unknown invoice")) return { ok: false, error: "Deze factuur bestaat niet meer." };
+    if (error.message.includes("shop invoice")) return { ok: false, error: "Een factuur van de webshop kan niet worden verwijderd." };
     return FAILED;
+  }
+
+  // The stock changed, which the web shop shows.
+  if (stockRestored === true && invoice.stove_number !== null) {
+    const stoveNumber = invoice.stove_number as number;
+    after(() => syncStoveToShop(supabase, stoveNumber));
   }
   revalidatePath("/", "layout");
   return { ok: true };

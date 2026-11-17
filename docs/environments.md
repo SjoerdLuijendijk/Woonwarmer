@@ -16,7 +16,7 @@ both in the same region; update `regions` when the database moves.
 All environments currently share **one Supabase project**. Consequences:
 
 - Data changed on staging or in a preview (stoves, photos, sold status, invoices) is changed in production too.
-- Invoices cannot be deleted and use the real invoice number sequence; do not create test invoices on staging.
+- Invoices use the real invoice number sequence; do not create test invoices on staging.
 - A migration applies to production the moment it is run. Every migration must work with both the
   old and the new code (for example: add a nullable or defaulted column first; remove or rename only
   after the code that used it is live).

@@ -9,7 +9,7 @@ import type { InvoiceStock } from "../lib/invoice-queries";
 import { formatPriceInput } from "../lib/price";
 import CustomerFields from "./CustomerFields";
 import { useDialog } from "./DialogProvider";
-import { deleteDraftInvoice, finalizeInvoice, getInvoiceSources, getStoveStockForInvoice, saveDraftInvoice } from "./invoice-actions";
+import { deleteInvoice, finalizeInvoice, getInvoiceSources, getStoveStockForInvoice, saveDraftInvoice } from "./invoice-actions";
 import InvoiceLinesEditor from "./InvoiceLinesEditor";
 import InvoiceStockOption, { stockDeduction } from "./InvoiceStockOption";
 import InvoiceTotalsSummary from "./InvoiceTotalsSummary";
@@ -53,8 +53,8 @@ type InvoiceEditDialogProps = {
 };
 
 // Shows an invoice with its PDF. A concept can still change: it is saved, made final (marked sent,
-// which gives it its number and date) or deleted. A sent invoice is final and only shown. Rendered
-// only while open.
+// which gives it its number and date) or deleted. A sent invoice is final: it is only shown, or deleted
+// as a whole. Rendered only while open.
 export default function InvoiceEditDialog({ invoiceId, invoice: initialInvoice, onClose }: InvoiceEditDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -68,7 +68,7 @@ export default function InvoiceEditDialog({ invoiceId, invoice: initialInvoice, 
   const [pending, startTransition] = useTransition();
   const [stock, setStock] = useState<InvoiceStock | null>(null);
   const [takeFromStock, setTakeFromStock] = useState(false);
-  const { confirm } = useDialog();
+  const { confirm, choose } = useDialog();
   const isDraft = saved.status === "draft";
 
   useEffect(() => {
@@ -164,11 +164,34 @@ export default function InvoiceEditDialog({ invoiceId, invoice: initialInvoice, 
     });
   }
 
+  // Null when cancelled; otherwise whether the units the invoice took from the stock go back.
+  async function confirmDelete(): Promise<boolean | null> {
+    if (isDraft) {
+      return (await confirm({ title: "Concept verwijderen?", confirmLabel: "Verwijderen", danger: true })) ? false : null;
+    }
+    const title = `Factuur ${saved.number} verwijderen?`;
+    const warning = "De factuur en de betalingen die erbij staan worden definitief verwijderd. Dit kan niet ongedaan worden gemaakt.";
+    const taken = saved.stockDeducted ?? 0;
+    if (taken === 0 || saved.stoveNumber === null) {
+      return (await confirm({ title, message: warning, confirmLabel: "Verwijderen", danger: true })) ? false : null;
+    }
+    const choice = await choose({
+      title,
+      message: `${warning} Deze factuur haalde ${taken} van de voorraad van kachel ${saved.stoveNumber} af.`,
+      choices: [
+        { value: "keep", label: "Verwijderen, voorraad laten staan" },
+        { value: "restore", label: "Verwijderen en voorraad terugzetten" },
+      ],
+    });
+    return choice === null ? null : choice === "restore";
+  }
+
   async function handleDelete() {
-    const confirmed = await confirm({ title: "Concept verwijderen?", confirmLabel: "Verwijderen", danger: true });
-    if (!confirmed) return;
+    const restoreStock = await confirmDelete();
+    if (restoreStock === null) return;
+    setError(null);
     startTransition(async () => {
-      const result = await deleteDraftInvoice(invoiceId);
+      const result = await deleteInvoice(invoiceId, restoreStock);
       if (!result.ok) return setError(result.error);
       dialogRef.current?.close();
     });
@@ -241,9 +264,14 @@ export default function InvoiceEditDialog({ invoiceId, invoice: initialInvoice, 
                 </button>
               </>
             ) : (
-              <button type="button" className="primary-button" onClick={download} disabled={pending}>
-                PDF downloaden
-              </button>
+              <>
+                <button type="button" className="text-button danger-text" onClick={handleDelete} disabled={pending}>
+                  Verwijderen
+                </button>
+                <button type="button" className="primary-button" onClick={download} disabled={pending}>
+                  PDF downloaden
+                </button>
+              </>
             )}
           </div>
         </form>
