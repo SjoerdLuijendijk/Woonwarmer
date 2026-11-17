@@ -36,7 +36,7 @@ export async function getInvoice(supabase: SupabaseClient, id: number): Promise<
   const { data, error } = await supabase
     .from("invoices")
     .select(
-      "invoice_number, status, issue_date, stove_number, seller, customer_name, customer_address, customer_postal_code, customer_city, customer_email, customer_phone, invoice_lines (position, description, quantity, unit_price_cents, vat_rate, margin_scheme, stove_number, article_id)",
+      "invoice_number, status, stock_deducted, issue_date, stove_number, seller, customer_name, customer_address, customer_postal_code, customer_city, customer_email, customer_phone, invoice_lines (position, description, quantity, unit_price_cents, vat_rate, margin_scheme, stove_number, article_id)",
     )
     .eq("id", id)
     .order("position", { referencedTable: "invoice_lines", ascending: true })
@@ -48,6 +48,7 @@ export async function getInvoice(supabase: SupabaseClient, id: number): Promise<
   return {
     number: data.invoice_number,
     status: data.status,
+    stockDeducted: data.stock_deducted,
     issueDate: data.issue_date,
     stoveNumber: data.stove_number,
     seller: data.seller,

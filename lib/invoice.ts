@@ -59,6 +59,8 @@ export type Invoice = {
   number: string | null; // null for a concept or a draft preview
   /** A concept can still change and has no number; a sent invoice is final. Absent for a preview. */
   status?: "draft" | "sent";
+  /** Units a sent invoice took from the stock of its stove. Absent for a preview. */
+  stockDeducted?: number;
   issueDate: string; // yyyy-mm-dd
   /** Null for a separate invoice that is not about a stove. */
   stoveNumber: number | null;
